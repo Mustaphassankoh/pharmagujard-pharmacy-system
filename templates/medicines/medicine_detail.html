@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ medicine.generic_name }} | PharmaGuard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>{{ medicine.generic_name }} {% if medicine.brand_name %}<span style="color: #6c757d; font-size: 1.2rem;">({{ medicine.brand_name }})</span>{% endif %}</h1>
+        <p class="text-muted">Master formulary record details.</p>
+    </div>
+    <div class="page-actions">
+        <a href="{% url 'medicines:medicine_list' %}" class="btn btn-outline-secondary">← Back to Medicines</a>
+        {% if is_admin %}
+            <a href="{% url 'medicines:medicine_update' medicine.pk %}" class="btn btn-primary">Edit Medicine</a>
+            <form action="{% url 'medicines:medicine_toggle_status' medicine.pk %}" method="post" style="display:inline;" onsubmit="return confirm('Are you sure you want to {% if medicine.is_active %}deactivate{% else %}activate{% endif %} this medicine?');">
+                {% csrf_token %}
+                {% if medicine.is_active %}
+                    <button type="submit" class="btn btn-outline-danger">Deactivate</button>
+                {% else %}
+                    <button type="submit" class="btn btn-outline-success">Activate</button>
+                {% endif %}
+            </form>
+        {% endif %}
+    </div>
+</div>
+
+<div class="detail-card">
+    <div class="detail-header">
+        <div>
+            <strong>Therapeutic Category:</strong>
+            <span class="badge badge-pill">{{ medicine.category.name }}</span>
+        </div>
+        <div>
+            {% if medicine.is_active %}
+                <span class="badge badge-active">Active</span>
+            {% else %}
+                <span class="badge badge-inactive">Inactive</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="detail-body">
+        <div class="detail-grid">
+            <div class="detail-item">
+                <h4>Generic Name</h4>
+                <p>{{ medicine.generic_name }}</p>
+            </div>
+
+            <div class="detail-item">
+                <h4>Brand Name</h4>
+                <p>{{ medicine.brand_name|default:"None / Generic" }}</p>
+            </div>
+
+            <div class="detail-item">
+                <h4>Dosage Form</h4>
+                <p>{{ medicine.get_dosage_form_display }}</p>
+            </div>
+
+            <div class="detail-item">
+                <h4>Strength</h4>
+                <p>{{ medicine.strength }}</p>
+            </div>
+
+            <div class="detail-item">
+                <h4>Dispensing Unit</h4>
+                <p>{{ medicine.get_unit_display }}</p>
+            </div>
+
+            <div class="detail-item">
+                <h4>Min Stock Level Threshold</h4>
+                <p>{{ medicine.minimum_stock_level }} {{ medicine.get_unit_display }}s</p>
+            </div>
+
+            <div class="detail-item">
+                <h4>Registered Date</h4>
+                <p>{{ medicine.created_at|date:"M d, Y H:i" }}</p>
+            </div>
+
+            <div class="detail-item">
+                <h4>Last Modified</h4>
+                <p>{{ medicine.updated_at|date:"M d, Y H:i" }}</p>
+            </div>
+        </div>
+
+        {% if medicine.description %}
+        <div class="detail-notes">
+            <h4 style="font-size: 0.8rem; text-transform: uppercase; color: #6c757d; margin-bottom: 8px;">Description / Clinical Notes</h4>
+            <p style="color: #495057; line-height: 1.6; white-space: pre-line;">{{ medicine.description }}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

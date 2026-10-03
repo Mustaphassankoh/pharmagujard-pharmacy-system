@@ -1,0 +1,17 @@
+medicine_count,interaction_warning_count,allergy_warning_count,dosage_warning_count,low_alert_count,moderate_alert_count,high_alert_count,critical_alert_count,not_checked_count,warning_check_count,transaction_type,review_priority
+1,0,0,0,0,0,0,0,0,0,0,LOW
+2,0,0,0,0,0,0,0,0,0,1,LOW
+1,0,0,0,0,0,0,0,2,0,0,LOW
+3,0,0,0,0,0,0,0,1,0,2,LOW
+2,1,0,0,1,0,0,0,0,1,0,MODERATE
+2,0,1,0,0,1,0,0,0,1,2,MODERATE
+2,0,0,1,0,1,0,0,0,1,1,MODERATE
+3,1,0,1,1,1,0,0,0,2,2,MODERATE
+3,1,0,0,0,0,1,0,0,1,0,HIGH
+3,0,1,1,0,0,1,0,0,2,2,HIGH
+4,1,1,1,0,2,1,0,0,3,1,HIGH
+2,0,0,1,0,0,1,0,1,1,2,HIGH
+3,1,0,0,0,0,0,1,0,1,0,CRITICAL
+2,0,1,0,0,0,0,1,0,1,2,CRITICAL
+4,1,1,1,0,1,1,1,0,3,1,CRITICAL
+5,2,1,1,0,0,2,1,0,3,2,CRITICAL

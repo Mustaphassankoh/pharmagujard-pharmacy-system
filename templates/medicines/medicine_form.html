@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} | PharmaGuard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>{{ title }}</h1>
+        <p class="text-muted">Master formulary record (does not represent inventory stock batches).</p>
+    </div>
+    <div class="page-actions">
+        <a href="{% url 'medicines:medicine_list' %}" class="btn btn-outline-secondary">← Back to Medicines</a>
+    </div>
+</div>
+
+<div class="form-card">
+    <form method="post" novalidate>
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+        <div class="alert alert-danger">
+            {% for error in form.non_field_errors %}
+                <div>{{ error }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="form-grid">
+            <!-- Generic Name -->
+            <div class="form-group">
+                <label for="{{ form.generic_name.id_for_label }}">{{ form.generic_name.label }}</label>
+                {{ form.generic_name }}
+                {% if form.generic_name.errors %}
+                    <ul class="errorlist">
+                        {% for error in form.generic_name.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+                <div class="form-text">Active pharmaceutical ingredient (e.g., Paracetamol).</div>
+            </div>
+
+            <!-- Brand Name -->
+            <div class="form-group">
+                <label for="{{ form.brand_name.id_for_label }}">{{ form.brand_name.label }}</label>
+                {{ form.brand_name }}
+                {% if form.brand_name.errors %}
+                    <ul class="errorlist">
+                        {% for error in form.brand_name.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+                <div class="form-text">Commercial/trade name (e.g., Panadol), if applicable.</div>
+            </div>
+
+            <!-- Category -->
+            <div class="form-group">
+                <label for="{{ form.category.id_for_label }}">{{ form.category.label }}</label>
+                {{ form.category }}
+                {% if form.category.errors %}
+                    <ul class="errorlist">
+                        {% for error in form.category.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+                <div class="form-text">Therapeutic class.</div>
+            </div>
+
+            <!-- Dosage Form -->
+            <div class="form-group">
+                <label for="{{ form.dosage_form.id_for_label }}">{{ form.dosage_form.label }}</label>
+                {{ form.dosage_form }}
+                {% if form.dosage_form.errors %}
+                    <ul class="errorlist">
+                        {% for error in form.dosage_form.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+                <div class="form-text">Formulation (e.g., Tablet, Syrup, Injection).</div>
+            </div>
+
+            <!-- Strength -->
+            <div class="form-group">
+                <label for="{{ form.strength.id_for_label }}">{{ form.strength.label }}</label>
+                {{ form.strength }}
+                {% if form.strength.errors %}
+                    <ul class="errorlist">
+                        {% for error in form.strength.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+                <div class="form-text">Potency / concentration (e.g., 500mg, 100mg/2ml).</div>
+            </div>
+
+            <!-- Unit -->
+            <div class="form-group">
+                <label for="{{ form.unit.id_for_label }}">{{ form.unit.label }}</label>
+                {{ form.unit }}
+                {% if form.unit.errors %}
+                    <ul class="errorlist">
+                        {% for error in form.unit.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+                <div class="form-text">Standard dispensing measure (e.g., Tablet, Bottle).</div>
+            </div>
+
+            <!-- Minimum Stock Level -->
+            <div class="form-group">
+                <label for="{{ form.minimum_stock_level.id_for_label }}">{{ form.minimum_stock_level.label }}</label>
+                {{ form.minimum_stock_level }}
+                {% if form.minimum_stock_level.errors %}
+                    <ul class="errorlist">
+                        {% for error in form.minimum_stock_level.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+                <div class="form-text">Low stock alert threshold (cannot be negative).</div>
+            </div>
+
+            <!-- Status Checkbox -->
+            <div class="form-group" style="display: flex; align-items: center; gap: 8px; margin-top: 25px;">
+                {{ form.is_active }}
+                <label for="{{ form.is_active.id_for_label }}" style="margin-bottom: 0; cursor: pointer;">
+                    {{ form.is_active.label }}
+                </label>
+                {% if form.is_active.errors %}
+                    <ul class="errorlist">
+                        {% for error in form.is_active.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+
+            <!-- Description (Full Width) -->
+            <div class="form-group form-col-full">
+                <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+                {{ form.description }}
+                {% if form.description.errors %}
+                    <ul class="errorlist">
+                        {% for error in form.description.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <a href="{% url 'medicines:medicine_list' %}" class="btn btn-outline-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary">{{ button_text }}</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

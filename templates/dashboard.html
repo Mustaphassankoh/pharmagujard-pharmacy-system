@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard | PharmaGuard{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+    <h1>Dashboard</h1>
+    <p class="page-subtitle">A clear view of current pharmacy operations.</p>
+</div>
+
+<div class="dashboard-grid">
+    <div class="card stat-card stat-card-primary">
+        <span class="stat-label">Medicine catalogue</span>
+        <h3>Total Medicines</h3>
+        <p class="stat">{{ total_medicines|default:0 }}</p>
+    </div>
+    <div class="card stat-card">
+        <span class="stat-label">Inventory attention</span>
+        <h3>Low Stock Alerts</h3>
+        <p class="stat warning">0</p>
+    </div>
+    <div class="card stat-card">
+        <span class="stat-label">Operational summary</span>
+        <h3>Today's Sales</h3>
+        <p class="stat">0</p>
+    </div>
+    <div class="card stat-card">
+        <span class="stat-label">Workflow queue</span>
+        <h3>Pending Prescriptions</h3>
+        <p class="stat">0</p>
+    </div>
+</div>
+{% endblock %}

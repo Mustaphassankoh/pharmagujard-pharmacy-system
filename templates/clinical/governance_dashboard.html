@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block title %}Clinical Governance | PharmaGuard{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>Clinical Governance Summary</h1><p class="page-subtitle">Rule lifecycle, effective-state, and review oversight.</p></div><div class="page-actions"><a class="btn btn-outline-secondary" href="{% url 'clinical:rule_report' %}">Rule Report</a><a class="btn btn-outline-secondary" href="{% url 'clinical:audit_report' %}">Audit History</a></div></div>
+<div class="governance-metrics">
+    <div class="detail-card governance-metric"><strong>Total Rules</strong><span>{{ summary.total }}</span></div>
+    <div class="detail-card governance-metric"><strong>Draft</strong><span>{{ summary.draft }}</span></div>
+    <div class="detail-card governance-metric"><strong>Under Review</strong><span>{{ summary.under_review }}</span></div>
+    <div class="detail-card governance-metric"><strong>Approved</strong><span>{{ summary.approved }}</span></div>
+    <div class="detail-card governance-metric"><strong>Active</strong><span>{{ summary.active }}</span></div>
+    <div class="detail-card governance-metric"><strong>Retired</strong><span>{{ summary.retired }}</span></div>
+</div>
+<div class="detail-card detail-card-wide mb-4"><div class="detail-header"><strong>Effective and Source-Review Metrics</strong></div><div class="detail-body detail-grid">
+    <div class="detail-item"><h4>Currently Effective</h4><p>{{ summary.currently_effective }}</p></div><div class="detail-item"><h4>Future Rules</h4><p>{{ summary.future }}</p></div><div class="detail-item"><h4>Expired</h4><p>{{ summary.expired }}</p></div><div class="detail-item"><h4>Expiring Within {{ expiry_window_days }} Days</h4><p>{{ summary.expiring_soon }}</p></div><div class="detail-item"><h4>Review Overdue</h4><p>{{ summary.review_overdue }}</p></div><div class="detail-item"><h4>Review Due Soon</h4><p>{{ summary.review_due_soon }}</p></div><div class="detail-item"><h4>No Review Date</h4><p>{{ summary.no_review_date }}</p></div>
+</div></div>
+<h2 class="section-title">Rules by Type</h2>
+<div class="table-container mb-4"><table class="table"><thead><tr><th>Type</th><th>Total</th><th>Active</th><th>Draft</th><th>Retired</th><th>Expiring Soon</th></tr></thead><tbody>{% for key, item in summary.by_type.items %}<tr><td>{{ item.label }}</td><td>{{ item.total }}</td><td>{{ item.active }}</td><td>{{ item.draft }}</td><td>{{ item.retired }}</td><td>{{ item.expiring_soon }}</td></tr>{% endfor %}</tbody></table></div>
+<h2 class="section-title">Action Required</h2>
+{% for queue_name, rows in queues.items %}<div class="detail-card detail-card-wide mb-3"><div class="detail-header"><strong>{{ queue_name|title }} ({{ rows|length }})</strong></div><div class="detail-body queue-list">{% for row in rows|slice:":10" %}<p><a href="{% url 'clinical:rule_history' row.rule_type row.object.pk %}">{{ row.rule_type_label }} — {{ row.summary }}</a> · v{{ row.object.version }} · <span class="badge badge-{{ row.object.status|lower }}">{{ row.object.status }}</span> · review {{ row.object.next_review_date|default:"not configured" }}</p>{% empty %}<p class="text-muted">No rules in this queue.</p>{% endfor %}</div></div>{% endfor %}
+<h2 class="section-title">Recent Governance Activity</h2>
+<div class="table-container"><table class="table"><thead><tr><th>Action</th><th>Rule</th><th>Version</th><th>User</th><th>Time</th><th>Reason</th></tr></thead><tbody>{% for audit in recent_activity %}<tr><td><a href="{% url 'clinical:audit_detail' audit.pk %}">{{ audit.action }}</a></td><td>{{ audit.rule_type }} #{{ audit.rule_object_id }}</td><td>{{ audit.rule_version }}</td><td>{{ audit.changed_by.username|default:"System/legacy" }}</td><td>{{ audit.changed_at|date:"Y-m-d H:i" }}</td><td>{{ audit.change_reason|default:"-" }}</td></tr>{% empty %}<tr><td colspan="6" class="empty-state">No governance activity.</td></tr>{% endfor %}</tbody></table></div>
+{% endblock %}

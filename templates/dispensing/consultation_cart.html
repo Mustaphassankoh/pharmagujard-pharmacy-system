@@ -1,0 +1,271 @@
+{% extends 'base.html' %}
+{% load currency %}
+
+{% block title %}{{ title }} | PharmaGuard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>{{ title }}</h1>
+    <div class="page-actions">
+        <form action="{% url 'dispensing:cancel_transaction' txn.pk %}" method="post"
+              onsubmit="return confirm('Cancel this transaction? No stock will be changed.');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-danger">Cancel Transaction</button>
+        </form>
+    </div>
+</div>
+
+<div class="dispensing-layout">
+
+    <!-- LEFT: Metadata + Medicine Search + Cart Table -->
+    <div>
+        <!-- Consultation Metadata -->
+        <div class="filter-card" style="margin-bottom:20px;">
+            <h3 style="margin-bottom:14px; font-size:1rem; font-weight:600;">Consultation Details</h3>
+            <form method="post" action="{% url 'dispensing:consultation_save_metadata' txn.pk %}">
+                {% csrf_token %}
+                <div class="row">
+                    {% for field in meta_form %}
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ field.id_for_label }}" style="font-size:0.82rem; font-weight:600; color:#495057; text-transform:uppercase; letter-spacing:0.5px; display:block; margin-bottom:4px;">{{ field.label }} {% if field.field.required %}*{% endif %}</label>
+                        {{ field }}
+                        {% if field.name == 'structured_allergies' %}
+                            <small style="display:block; color:#6c757d; margin-top:5px;">Used by automated allergy checking.</small>
+                        {% elif field.name == 'known_allergies' %}
+                            <small style="display:block; color:#6c757d; margin-top:5px;">Free-text context only; not automatically evaluated unless also selected as a structured allergy.</small>
+                        {% endif %}
+                        {% if field.errors %}
+                            <div class="invalid-feedback d-block">{{ field.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                <p style="font-size:0.82rem; color:#6c757d;">Only structured allergy selections are included in automated allergy checking.</p>
+                <button type="submit" class="btn btn-secondary btn-sm mt-2">Save Details</button>
+            </form>
+        </div>
+
+        <!-- Medicine Search -->
+        <div class="filter-card" style="margin-bottom:20px;">
+            <h3 style="margin-bottom:14px; font-size:1rem; font-weight:600;">Add Prescribed Medicine</h3>
+
+            <div style="position:relative; margin-bottom:12px;">
+                <input type="text" id="medicine-search-input" class="form-control"
+                       placeholder="Search by generic name or brand name…"
+                       autocomplete="off">
+                <div id="medicine-search-results" class="medicine-search-results">
+                </div>
+            </div>
+
+            <form method="post" action="{% url 'dispensing:add_to_cart' txn.pk %}" id="add-to-cart-form">
+                {% csrf_token %}
+                <input type="hidden" name="medicine_id" id="selected-medicine-id">
+                
+                <div class="row mb-3">
+                    <div class="col-md-9">
+                        <label style="font-size:0.82rem; font-weight:600; color:#495057; text-transform:uppercase; letter-spacing:0.5px; display:block; margin-bottom:4px;">Selected Medicine</label>
+                        <input type="text" id="selected-medicine-display" class="form-control"
+                               readonly placeholder="None selected" style="background:#f8f9fa;">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="id_quantity" style="font-size:0.82rem; font-weight:600; color:#495057; text-transform:uppercase; letter-spacing:0.5px; display:block; margin-bottom:4px;">Quantity</label>
+                        <input type="number" name="quantity" id="id_quantity" class="form-control" min="1" value="1" required>
+                    </div>
+                </div>
+
+                <h4 style="font-size:0.9rem; margin:12px 0 8px;">Dosage instructions</h4>
+                <p style="font-size:0.8rem; color:#6c757d;">Structured fields are used for automated dosage checking; free text is retained for instructions only.</p>
+                <div class="row mb-3">
+                    <div class="col-md-4"><label for="id_dose">Human-readable dose</label><input type="text" name="dose" id="id_dose" class="form-control"></div>
+                    <div class="col-md-4"><label for="id_frequency">Human-readable frequency</label><input type="text" name="frequency" id="id_frequency" class="form-control"></div>
+                    <div class="col-md-4"><label for="id_duration">Human-readable duration</label><input type="text" name="duration" id="id_duration" class="form-control"></div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-3"><label for="id_dose_amount">Dose amount</label><input type="number" step="0.0001" min="0.0001" name="dose_amount" id="id_dose_amount" class="form-control"></div>
+                    <div class="col-md-3"><label for="id_dose_unit">Dose unit</label><select name="dose_unit" id="id_dose_unit" class="form-control"><option value="">---------</option><option>MG</option><option>G</option><option>MCG</option><option>ML</option><option>TABLET</option><option>CAPSULE</option><option>UNIT</option></select></div>
+                    <div class="col-md-3"><label for="id_frequency_per_day">Frequency/day</label><input type="number" step="0.0001" min="0.0001" name="frequency_per_day" id="id_frequency_per_day" class="form-control"></div>
+                    <div class="col-md-3"><label for="id_duration_days">Duration days</label><input type="number" min="1" name="duration_days" id="id_duration_days" class="form-control"></div>
+                </div>
+                <div class="mb-3"><label for="id_instructions">Instructions</label><textarea name="instructions" id="id_instructions" class="form-control" rows="2"></textarea></div>
+
+                <button type="submit" class="btn btn-primary" id="add-btn" disabled>
+                    Add to Consultation
+                </button>
+            </form>
+        </div>
+
+        <!-- Cart Table -->
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Medicine</th>
+                        <th style="text-align:right;">Qty</th>
+                        <th style="text-align:right;">Est. Line Total</th>
+                        <th style="text-align:center;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for line in cart_display %}
+                    <tr>
+                        <td>
+                            <div style="font-weight:500;">{{ line.medicine_name }}</div>
+                            {% if line.dose_amount %}<small>{{ line.dose_amount }} {{ line.dose_unit }}{% if line.frequency_per_day %}, {{ line.frequency_per_day }}/day{% endif %}{% if line.duration_days %}, {{ line.duration_days }} days{% endif %}</small>{% endif %}
+                            {% if line.available < line.quantity %}
+                                <small style="color:var(--danger);">⚠ Available: {{ line.available }}</small>
+                            {% else %}
+                                <small style="color:#6c757d;">Available: {{ line.available }}</small>
+                            {% endif %}
+                        </td>
+                        <td style="text-align:right;">{{ line.quantity }}</td>
+                        <td style="text-align:right; font-weight:500;">{{ line.line_total|currency }}</td>
+                        <td style="text-align:center;">
+                            <form method="post"
+                                  action="{% url 'dispensing:remove_from_cart' txn.pk line.medicine_id %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-danger"
+                                        onclick="return confirm('Remove this item?');">
+                                    Remove
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="empty-state" style="padding:30px 0;">
+                            No items added yet. Search for a medicine above to begin.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- RIGHT: Order Summary -->
+    <div>
+        <div class="form-card" style="max-width:100%; position: sticky; top: 20px;">
+            <h3 style="font-size:1rem; font-weight:600; margin-bottom:16px;">Transaction Summary</h3>
+
+            <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:0.95rem;">
+                <span style="color:#6c757d;">Transaction</span>
+                <span style="font-weight:500;">{{ txn.transaction_number }}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:0.95rem;">
+                <span style="color:#6c757d;">Type</span>
+                <span>{{ txn.get_transaction_type_display }}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:16px; font-size:0.95rem;">
+                <span style="color:#6c757d;">Items</span>
+                <span>{{ cart_display|length }}</span>
+            </div>
+
+            <hr style="border-color:var(--border-color); margin-bottom:16px;">
+
+            <div style="display:flex; justify-content:space-between; font-size:1.1rem; font-weight:700; margin-bottom:20px;">
+                <span>Est. Total</span>
+                <span>{{ preview_total|currency }}</span>
+            </div>
+
+            <p style="font-size:0.78rem; color:#6c757d; margin-bottom:16px;">
+                * Prices are estimated from current batch data. Stock is deducted only on confirmation.
+            </p>
+
+            {% include 'dispensing/_clinical_review.html' %}
+
+            {% if txn.consultation.current_medications %}
+            <div style="padding:12px; margin-bottom:12px; background:#e8f4fd; border:1px solid #b8daff; border-radius:5px; font-size:0.85rem;">
+                <strong>Recorded current medications:</strong><br>
+                {{ txn.consultation.current_medications|linebreaksbr }}
+                <p style="margin:8px 0 0;">Current medications were recorded as free text and were not included in structured drug-interaction matching.</p>
+            </div>
+            {% endif %}
+
+            {% if cart_display %}
+            <form method="post" action="{% url 'dispensing:confirm_consultation' txn.pk %}"
+                  onsubmit="return confirm('Confirm and dispense? This will deduct stock and cannot be undone.');">
+                {% csrf_token %}
+                {% if clinical_review.status == 'WARNING' %}
+                <div class="alert alert-warning acknowledgement-panel">
+                    <label style="display:block; font-weight:600; margin-bottom:8px;">
+                        <input type="checkbox" name="acknowledge_clinical_warnings" required>
+                        I have reviewed and acknowledge all clinical warnings.
+                    </label>
+                    <label for="consultation-acknowledgement-note" style="display:block; font-size:0.82rem;">Acknowledgement note (optional)</label>
+                    <textarea id="consultation-acknowledgement-note" name="acknowledgement_note" class="form-control" rows="2"></textarea>
+                </div>
+                {% endif %}
+                <button type="submit" class="btn btn-primary btn-block">
+                    ✓ Confirm & Dispense
+                </button>
+            </form>
+            {% else %}
+            <button class="btn btn-primary btn-block" disabled>
+                ✓ Confirm & Dispense
+            </button>
+            {% endif %}
+            
+        </div>
+    </div>
+
+</div>
+
+<script>
+(function () {
+    const searchInput = document.getElementById('medicine-search-input');
+    const resultsBox = document.getElementById('medicine-search-results');
+    const hiddenId = document.getElementById('selected-medicine-id');
+    const displayInput = document.getElementById('selected-medicine-display');
+    const addBtn = document.getElementById('add-btn');
+    let debounceTimer;
+
+    searchInput.addEventListener('input', function () {
+        clearTimeout(debounceTimer);
+        const q = this.value.trim();
+        if (q.length < 2) { resultsBox.style.display = 'none'; return; }
+        debounceTimer = setTimeout(() => fetchMedicines(q), 280);
+    });
+
+    function fetchMedicines(q) {
+        fetch(`{% url 'dispensing:medicine_search_json' %}?q=${encodeURIComponent(q)}`)
+            .then(r => r.json())
+            .then(data => {
+                resultsBox.innerHTML = '';
+                if (!data.results.length) {
+                    resultsBox.innerHTML = '<div class="medicine-search-empty">No medicines found.</div>';
+                    resultsBox.style.display = 'block';
+                    return;
+                }
+                data.results.forEach(med => {
+                    const item = document.createElement('div');
+                    item.className = 'medicine-result';
+                    item.innerHTML = `
+                        <span>${med.name}</span>
+                        <span class="medicine-result-stock ${med.has_stock ? 'is-available' : 'is-unavailable'}">
+                            ${med.has_stock ? 'Stock: ' + med.available_stock : 'Out of stock'}
+                        </span>`;
+                    item.addEventListener('click', () => {
+                        hiddenId.value = med.id;
+                        displayInput.value = med.name;
+                        searchInput.value = '';
+                        resultsBox.style.display = 'none';
+                        addBtn.disabled = !med.has_stock;
+                        if (!med.has_stock) {
+                            displayInput.value = med.name + ' (OUT OF STOCK)';
+                        }
+                    });
+                    resultsBox.appendChild(item);
+                });
+                resultsBox.style.display = 'block';
+            })
+            .catch(() => { resultsBox.style.display = 'none'; });
+    }
+
+    document.addEventListener('click', function (e) {
+        if (!searchInput.contains(e.target) && !resultsBox.contains(e.target)) {
+            resultsBox.style.display = 'none';
+        }
+    });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+
+{% block title %}Medicines Catalog | PharmaGuard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Medicines Catalog</h1>
+        <p class="text-muted">Master formulary of approved medications and dosage strengths.</p>
+    </div>
+    {% if is_admin %}
+    <div class="page-actions">
+        <a href="{% url 'medicines:medicine_create' %}" class="btn btn-primary">+ Add Medicine</a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Search & Filter Card -->
+<div class="filter-card">
+    <form method="get" action="{% url 'medicines:medicine_list' %}" class="filter-form">
+        <!-- Search Query -->
+        <div class="filter-group" style="flex: 2 1 250px;">
+            <label for="search-input">Search</label>
+            <input type="text" id="search-input" name="q" value="{{ search_query }}" class="form-control" placeholder="Search generic or brand name...">
+        </div>
+
+        <!-- Category Filter -->
+        <div class="filter-group">
+            <label for="category-filter">Category</label>
+            <select id="category-filter" name="category" class="form-select">
+                <option value="">All Categories</option>
+                {% for cat in categories %}
+                    <option value="{{ cat.id }}" {% if selected_category == cat.id|stringformat:"s" %}selected{% endif %}>
+                        {{ cat.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Dosage Form Filter -->
+        <div class="filter-group">
+            <label for="dosage-filter">Dosage Form</label>
+            <select id="dosage-filter" name="dosage_form" class="form-select">
+                <option value="">All Dosage Forms</option>
+                {% for code, label in dosage_forms %}
+                    <option value="{{ code }}" {% if selected_dosage_form == code %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Status Filter -->
+        <div class="filter-group" style="flex: 1 1 140px;">
+            <label for="status-filter">Status</label>
+            <select id="status-filter" name="status" class="form-select">
+                <option value="">All Statuses</option>
+                <option value="active" {% if selected_status == 'active' %}selected{% endif %}>Active</option>
+                <option value="inactive" {% if selected_status == 'inactive' %}selected{% endif %}>Inactive</option>
+            </select>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-primary">Filter</button>
+            {% if search_query or selected_category or selected_dosage_form or selected_status %}
+                <a href="{% url 'medicines:medicine_list' %}" class="btn btn-outline-secondary">Reset</a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- Results Table -->
+<div class="table-container">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Generic Name</th>
+                <th>Brand Name</th>
+                <th>Category</th>
+                <th>Strength</th>
+                <th>Dosage Form</th>
+                <th>Unit</th>
+                <th>Min Stock</th>
+                <th>Status</th>
+                <th style="text-align: right;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for med in medicines %}
+            <tr>
+                <td>
+                    <a href="{% url 'medicines:medicine_detail' med.pk %}" style="font-weight: 600; color: var(--primary-color); text-decoration: none;">
+                        {{ med.generic_name }}
+                    </a>
+                </td>
+                <td>{{ med.brand_name|default:"—" }}</td>
+                <td><span class="badge badge-pill">{{ med.category.name }}</span></td>
+                <td>{{ med.strength }}</td>
+                <td>{{ med.get_dosage_form_display }}</td>
+                <td>{{ med.get_unit_display }}</td>
+                <td>{{ med.minimum_stock_level }}</td>
+                <td>
+                    {% if med.is_active %}
+                        <span class="badge badge-active">Active</span>
+                    {% else %}
+                        <span class="badge badge-inactive">Inactive</span>
+                    {% endif %}
+                </td>
+                <td style="text-align: right;">
+                    <div class="btn-actions">
+                        <a href="{% url 'medicines:medicine_detail' med.pk %}" class="btn btn-sm btn-outline-secondary" title="View Details">View</a>
+                        {% if is_admin %}
+                            <a href="{% url 'medicines:medicine_update' med.pk %}" class="btn btn-sm btn-outline-primary" title="Edit Medicine">Edit</a>
+                            <form action="{% url 'medicines:medicine_toggle_status' med.pk %}" method="post" style="display:inline;" onsubmit="return confirm('Are you sure you want to {% if med.is_active %}deactivate{% else %}activate{% endif %} this medicine?');">
+                                {% csrf_token %}
+                                {% if med.is_active %}
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Deactivate">Deactivate</button>
+                                {% else %}
+                                    <button type="submit" class="btn btn-sm btn-outline-success" title="Activate">Activate</button>
+                                {% endif %}
+                            </form>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="9" class="empty-state">
+                    No medicines match your criteria.
+                    {% if is_admin %}
+                        <br><br><a href="{% url 'medicines:medicine_create' %}" class="btn btn-primary btn-sm">+ Add New Medicine</a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Pagination Controls -->
+{% if medicines.has_other_pages %}
+<div class="pagination-container">
+    <div>
+        Showing {{ medicines.start_index }} to {{ medicines.end_index }} of {{ total_count }} medicines
+    </div>
+    <ul class="pagination">
+        {% if medicines.has_previous %}
+            <li><a href="?page=1{% if querystring %}&{{ querystring }}{% endif %}">« First</a></li>
+            <li><a href="?page={{ medicines.previous_page_number }}{% if querystring %}&{{ querystring }}{% endif %}">‹ Prev</a></li>
+        {% else %}
+            <li class="disabled"><span>« First</span></li>
+            <li class="disabled"><span>‹ Prev</span></li>
+        {% endif %}
+
+        <li class="active"><span>Page {{ medicines.number }} of {{ medicines.paginator.num_pages }}</span></li>
+
+        {% if medicines.has_next %}
+            <li><a href="?page={{ medicines.next_page_number }}{% if querystring %}&{{ querystring }}{% endif %}">Next ›</a></li>
+            <li><a href="?page={{ medicines.paginator.num_pages }}{% if querystring %}&{{ querystring }}{% endif %}">Last »</a></li>
+        {% else %}
+            <li class="disabled"><span>Next ›</span></li>
+            <li class="disabled"><span>Last »</span></li>
+        {% endif %}
+    </ul>
+</div>
+{% elif total_count > 0 %}
+<div class="pagination-container">
+    <div>Showing all {{ total_count }} medicine{{ total_count|pluralize }}</div>
+</div>
+{% endif %}
+
+{% endblock %}

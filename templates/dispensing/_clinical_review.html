@@ -1,0 +1,102 @@
+<section class="clinical-review" aria-labelledby="clinical-review-title">
+    <div class="clinical-review-header">
+        <h3 id="clinical-review-title">Clinical Safety Review</h3>
+        <p>Deterministic checks remain authoritative. Review every warning before confirmation.</p>
+    </div>
+
+    <section class="ai-panel" aria-labelledby="ai-priority-title">
+        <div class="ai-panel-header">
+            <h4 id="ai-priority-title">AI Review Priority:</h4>
+            <span class="badge {% if risk_assessment %}badge-{{ risk_assessment.final_priority|lower }}{% else %}badge-secondary{% endif %}">
+                {% if risk_assessment %}{{ risk_assessment.final_priority }}{% else %}NOT_AVAILABLE{% endif %}
+            </span>
+        </div>
+        {% if risk_assessment %}
+        <div class="ai-panel-grid">
+            <div><span class="metadata-label">Final Review Priority</span><p class="ai-value">{{ risk_assessment.final_priority }}</p></div>
+            <div><span class="metadata-label">Raw Model Output</span><p class="ai-value">{{ risk_assessment.predicted_priority }}</p></div>
+            <div><span class="metadata-label">Confidence</span><p class="ai-value">{{ risk_assessment.prediction_probability }}</p></div>
+            <div><span class="metadata-label">Model Version</span><p class="ai-value">{{ risk_assessment.model_version.version }}</p></div>
+        </div>
+        <p><strong>Explanation:</strong> {{ risk_assessment.explanation }}</p>
+        <details>
+            <summary>Decision Path &amp; Feature Snapshot</summary>
+            <p class="metadata-label">Decision Path</p><pre>{{ risk_assessment.decision_path }}</pre>
+            <p class="metadata-label">Feature Snapshot</p><pre>{{ risk_assessment.feature_snapshot }}</pre>
+        </details>
+        {% else %}
+        <p class="clinical-meta">No model assessment is available for the current review.</p>
+        {% endif %}
+        <p class="ai-disclaimer"><strong>DEVELOPMENT / SYNTHETIC DATA — NOT CLINICALLY VALIDATED</strong><br>This model prioritizes pharmacist review. It does not diagnose, prescribe, determine clinical safety, or override deterministic clinical rules.</p>
+    </section>
+
+    <div class="clinical-check-grid">
+        <section class="clinical-check-card">
+            <p><strong>Drug Interaction Check</strong></p>
+            {% if interaction_result %}
+                <span class="badge {% if interaction_result.status == 'PASSED' %}badge-success{% elif interaction_result.status == 'WARNING' %}badge-warning{% else %}badge-secondary{% endif %}">{{ interaction_result.status }}</span>
+                <p class="clinical-meta">{{ interaction_result.details.checked_pairs|default:0 }} medicine pair{{ interaction_result.details.checked_pairs|default:0|pluralize }} checked{% if interaction_result.checked_at %} at {{ interaction_result.checked_at|date:"F j, Y - H:i" }}{% endif %}. {% if interaction_result.details.reason %}{{ interaction_result.details.reason }}{% endif %}</p>
+            {% else %}<span class="badge badge-secondary">Not yet evaluated</span>{% endif %}
+        </section>
+
+        <section class="clinical-check-card">
+            <p><strong>Allergy Check</strong></p>
+            {% if allergy_result %}
+                <span class="badge {% if allergy_result.status == 'PASSED' %}badge-success{% elif allergy_result.status == 'WARNING' %}badge-warning{% else %}badge-secondary{% endif %}">{{ allergy_result.status }}</span>
+                <p class="clinical-meta">{% if allergy_result.details.reason %}{{ allergy_result.details.reason }}{% elif allergy_result.checked_at %}Checked at {{ allergy_result.checked_at|date:"F j, Y - H:i" }}.{% endif %}</p>
+            {% else %}<span class="badge badge-secondary">Not yet evaluated</span>{% endif %}
+        </section>
+
+        <section class="clinical-check-card">
+            <p><strong>Dosage Check</strong></p>
+            {% if dosage_result %}
+                <span class="badge {% if dosage_result.status == 'PASSED' %}badge-success{% elif dosage_result.status == 'WARNING' %}badge-warning{% else %}badge-secondary{% endif %}">{{ dosage_result.status }}</span>
+                <p class="clinical-meta">{% if dosage_result.details.reason %}{{ dosage_result.details.reason }}{% else %}{{ dosage_result.details.evaluated_item_count }} medicine dosage{{ dosage_result.details.evaluated_item_count|pluralize }} evaluated.{% endif %}</p>
+            {% else %}<span class="badge badge-secondary">Not yet evaluated</span>{% endif %}
+        </section>
+    </div>
+
+    {% for alert in interaction_alerts %}
+    <article class="clinical-alert clinical-alert-{{ alert.severity|lower }}">
+        <div class="clinical-alert-heading"><strong>Drug Interaction Warning</strong><span class="badge badge-{{ alert.severity|lower }}">{{ alert.get_severity_display|upper }}</span></div>
+        <p><strong>Medicine A:</strong> {{ alert.medicine_a }}</p>
+        <p><strong>Medicine B:</strong> {{ alert.medicine_b }}</p>
+        <p><strong>Description:</strong> {{ alert.description }}</p>
+        <p><strong>Explanation:</strong> {{ alert.explanation|linebreaksbr }}</p>
+        <p><strong>Recommendation:</strong> {{ alert.recommendation|linebreaksbr }}</p>
+        <p><strong>Source/Reference:</strong> {{ alert.source_reference }}</p>
+    </article>
+    {% endfor %}
+
+    {% for alert in allergy_alerts %}
+    <article class="clinical-alert clinical-alert-{{ alert.severity|lower }}">
+        <div class="clinical-alert-heading"><strong>Allergy Warning</strong><span class="badge badge-{{ alert.severity|lower }}">{{ alert.get_severity_display|upper }}</span></div>
+        <p><strong>Allergen:</strong> {{ alert.allergen }}</p>
+        <p><strong>Medicine:</strong> {{ alert.medicine_a }}</p>
+        <p><strong>Description:</strong> {{ alert.description }}</p>
+        <p><strong>Why this alert appeared:</strong> {{ alert.explanation|linebreaksbr }}</p>
+        <p><strong>Recommended action:</strong> {{ alert.recommendation|linebreaksbr }}</p>
+        <p><strong>Source/Reference:</strong> {{ alert.source_reference }}</p>
+    </article>
+    {% endfor %}
+
+    {% for alert in dosage_alerts %}
+    <article class="clinical-alert clinical-alert-{{ alert.severity|lower }}">
+        <div class="clinical-alert-heading"><strong>Dosage Warning</strong><span class="badge badge-{{ alert.severity|lower }}">{{ alert.get_severity_display|upper }}</span></div>
+        <p><strong>Medicine:</strong> {{ alert.medicine_a }}</p>
+        <p><strong>Entered dosage:</strong> {{ alert.snapshot_details.entered_dose }} {{ alert.snapshot_details.dose_unit }}{% if alert.snapshot_details.frequency_per_day %}, {{ alert.snapshot_details.frequency_per_day }} times/day{% endif %}</p>
+        {% if alert.snapshot_details.calculated_daily_dose %}<p><strong>Calculated daily dose:</strong> {{ alert.snapshot_details.calculated_daily_dose }} {{ alert.snapshot_details.dose_unit }}/day</p>{% endif %}
+        <p><strong>Rule threshold:</strong> {{ alert.snapshot_details.applicable_limit }} {{ alert.snapshot_details.dose_unit }}</p>
+        <p><strong>Why this alert appeared:</strong> {{ alert.explanation }}</p>
+        <p><strong>Recommended action:</strong> {{ alert.recommendation }}</p>
+        <p><strong>Reference:</strong> {{ alert.source_reference }}</p>
+    </article>
+    {% endfor %}
+
+    {% if not clinical_review %}<p class="clinical-meta">Clinical decision support has not been run. No clinical review has been run for the current inputs.</p>{% endif %}
+
+    <form method="post" action="{% url 'dispensing:run_clinical_review' txn.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-outline-primary btn-block">{% if clinical_review %}Run Clinical Review Again{% else %}Run Clinical Review{% endif %}</button>
+    </form>
+</section>

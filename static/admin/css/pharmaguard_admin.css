@@ -1,0 +1,375 @@
+/* 1. Variables */
+:root,
+html[data-theme="light"],
+html[data-theme="dark"] {
+    --primary: #0F766E;
+    --secondary: #115E59;
+    --accent: #2563EB;
+    --primary-fg: #FFFFFF;
+    --body-fg: #1F2937;
+    --body-bg: #F8FAFC;
+    --body-quiet-color: #64748B;
+    --body-loud-color: #111827;
+    --header-color: #FFFFFF;
+    --header-branding-color: #FFFFFF;
+    --header-bg: #115E59;
+    --header-link-color: #CCFBF1;
+    --breadcrumbs-fg: #475569;
+    --breadcrumbs-link-fg: #0F766E;
+    --breadcrumbs-bg: #FFFFFF;
+    --link-fg: #0F766E;
+    --link-hover-color: #115E59;
+    --link-selected-fg: #2563EB;
+    --hairline-color: #E2E8F0;
+    --border-color: #CBD5E1;
+    --error-fg: #DC2626;
+    --message-success-bg: #F0FDF4;
+    --message-warning-bg: #FFFBEB;
+    --message-error-bg: #FEF2F2;
+    --darkened-bg: #F1F5F9;
+    --selected-bg: #F0FDFA;
+    --selected-row: #F0FDFA;
+    --button-fg: #FFFFFF;
+    --button-bg: #0F766E;
+    --button-hover-bg: #115E59;
+    --default-button-bg: #0F766E;
+    --default-button-hover-bg: #115E59;
+    --close-button-bg: #64748B;
+    --close-button-hover-bg: #475569;
+    --delete-button-bg: #DC2626;
+    --delete-button-hover-bg: #B91C1C;
+    --object-tools-fg: #FFFFFF;
+    --object-tools-bg: #0F766E;
+    --object-tools-hover-bg: #115E59;
+    color-scheme: light;
+}
+
+/* 2. Base */
+html { background: #F8FAFC; }
+body {
+    color: #1F2937;
+    background: #F8FAFC;
+    font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 15px;
+}
+a:link, a:visited { color: #0F766E; }
+a:hover, a:focus { color: #115E59; }
+:focus-visible { outline: 3px solid rgba(37, 99, 235, .28); outline-offset: 2px; }
+#container { min-width: 320px; }
+#content { max-width: 1480px; padding: 28px 32px 40px; }
+#content-main { min-width: 0; }
+.module, .inline-group, #changelist-filter, .submit-row {
+    overflow: hidden;
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 10px;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, .05);
+}
+
+/* 3. Header */
+#header {
+    min-height: 72px;
+    padding: 10px 28px;
+    color: #FFFFFF;
+    background: #115E59;
+    border-bottom: 1px solid rgba(255, 255, 255, .12);
+}
+#branding { min-width: 0; }
+.pharmaguard-admin-brand a {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    color: #FFFFFF !important;
+    text-decoration: none;
+}
+.pharmaguard-admin-mark {
+    display: inline-grid;
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+    place-items: center;
+    color: #115E59;
+    background: #FFFFFF;
+    border-radius: 11px;
+    font-size: 1.45rem;
+    font-weight: 800;
+    line-height: 1;
+}
+.pharmaguard-admin-brand-copy { display: flex; flex-direction: column; line-height: 1.25; }
+.pharmaguard-admin-brand-copy strong { font-size: 1.12rem; letter-spacing: -.015em; }
+.pharmaguard-admin-brand-copy small { color: #CCFBF1; font-size: .7rem; font-weight: 500; }
+#user-tools { color: #A7F3D0; font-size: .78rem; }
+#user-tools a { color: #FFFFFF; border-bottom-color: rgba(255, 255, 255, .35); }
+#user-tools a:hover { color: #CCFBF1; }
+.theme-toggle { color: #FFFFFF; }
+
+/* 4. Dashboard */
+.dashboard #content {
+    width: auto;
+    margin-right: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    align-items: start;
+    gap: 20px;
+}
+.dashboard .titles-and-tools { grid-column: 1 / -1; }
+.dashboard #content-main { display: grid; grid-template-columns: repeat(2, minmax(280px, 1fr)); gap: 18px; }
+.dashboard #content-main > .module { margin: 0; }
+.dashboard #content-related {
+    float: none;
+    width: auto;
+    margin: 0;
+    background: transparent;
+}
+.dashboard #content-related .module { margin-bottom: 18px; }
+.dashboard .module table { margin: 0; }
+.dashboard #content > br.clear { display: none; }
+
+/* 5. App groups */
+.module h2, .module caption, .inline-group h2 {
+    padding: 11px 16px;
+    color: #FFFFFF;
+    background: #0F766E;
+    font-size: .76rem;
+    font-weight: 800;
+    letter-spacing: .055em;
+    text-transform: uppercase;
+}
+.module caption a { color: #FFFFFF !important; }
+.dashboard .module table th,
+.dashboard .module table td { padding: 12px 16px; border-bottom: 1px solid #E2E8F0; }
+.dashboard .module table tr:last-child th,
+.dashboard .module table tr:last-child td { border-bottom: 0; }
+.dashboard .module table tr:hover { background: #F0FDFA; }
+.dashboard .module table th a { font-weight: 700; }
+.dashboard .addlink, .dashboard .changelink, .dashboard .viewlink {
+    padding-left: 20px;
+    font-size: .78rem;
+    font-weight: 700;
+}
+.dashboard .addlink { color: #0F766E; }
+.dashboard .changelink { color: #2563EB; }
+
+/* 6. Tables */
+#changelist { background: transparent; }
+#changelist .results {
+    overflow-x: auto;
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 10px;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, .05);
+}
+#result_list { margin: 0; }
+#result_list thead th {
+    padding: 11px 12px;
+    color: #475569;
+    background: #F1F5F9;
+    border-bottom: 1px solid #CBD5E1;
+    font-size: .72rem;
+    font-weight: 800;
+    letter-spacing: .035em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+#result_list tbody th, #result_list tbody td { padding: 12px; border-bottom: 1px solid #E2E8F0; }
+#result_list tbody tr:last-child th, #result_list tbody tr:last-child td { border-bottom: 0; }
+#result_list tbody tr:hover { background: #F8FAFC; }
+#result_list tbody tr.selected { background: #F0FDFA; }
+.paginator { color: #64748B; background: transparent; border: 0; }
+.paginator a:link, .paginator a:visited, .paginator .this-page {
+    min-width: 32px;
+    padding: 6px 9px;
+    border-radius: 6px;
+}
+.paginator .this-page { color: #FFFFFF; background: #0F766E; }
+
+/* 7. Forms */
+form .aligned p.help, form .aligned div.help, form .aligned .help,
+.help, p.help, form p.help, div.help, form div.help { color: #64748B; font-size: .78rem; }
+label { color: #1F2937; font-weight: 650; }
+input[type="text"], input[type="password"], input[type="email"], input[type="url"],
+input[type="number"], input[type="search"], input[type="date"], input[type="time"],
+select, textarea, .vTextField {
+    min-height: 40px;
+    padding: 8px 11px;
+    color: #1F2937;
+    background: #FFFFFF;
+    border: 1px solid #CBD5E1;
+    border-radius: 6px;
+}
+textarea { min-height: 100px; }
+input:focus, select:focus, textarea:focus {
+    border-color: #0F766E;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(15, 118, 110, .14);
+}
+fieldset.module { margin-bottom: 18px; }
+.form-row { padding: 14px 16px; border-bottom-color: #E2E8F0; }
+.form-row.errors { background: #FEF2F2; }
+.errorlist { color: #B91C1C; }
+.readonly { color: #475569; }
+.inline-group { margin-top: 20px; }
+.inline-related { border-bottom-color: #E2E8F0; }
+.inline-related h3 { color: #1F2937; background: #F8FAFC; border-bottom-color: #E2E8F0; }
+.selector { max-width: 100%; }
+
+/* 8. Buttons */
+.button, input[type="submit"], input[type="button"], .submit-row input, a.button {
+    min-height: 38px;
+    padding: 8px 14px;
+    color: #FFFFFF;
+    background: #0F766E;
+    border: 1px solid #0F766E;
+    border-radius: 6px;
+    font-weight: 700;
+}
+.button:hover, input[type="submit"]:hover, input[type="button"]:hover,
+.submit-row input:hover, a.button:hover { color: #FFFFFF; background: #115E59; border-color: #115E59; }
+.button.default, input[type="submit"].default { background: #0F766E; }
+.submit-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 14px 16px;
+}
+.submit-row p { margin: 0; }
+.submit-row .deletelink-box { margin: 0 auto 0 0; }
+.deletelink, .submit-row a.deletelink { color: #DC2626; }
+.submit-row a.deletelink { min-height: 38px; padding: 8px 14px; border: 1px solid #FCA5A5; border-radius: 6px; }
+.submit-row a.deletelink:hover { color: #FFFFFF; background: #DC2626; }
+.object-tools a:link, .object-tools a:visited { background-color: #0F766E; border-radius: 6px; }
+.object-tools a:hover { background-color: #115E59; }
+.delete-confirmation form .cancel-link { min-height: 38px; padding: 8px 14px; border-radius: 6px; }
+
+/* 9. Search and filters */
+#changelist .changelist-form-container { min-width: 0; }
+#changelist-search {
+    margin-bottom: 16px;
+    padding: 14px 16px;
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 10px;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, .05);
+}
+#changelist-search #searchbar { min-width: min(100%, 320px); }
+#changelist .actions {
+    margin-bottom: 12px;
+    padding: 10px 12px;
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+}
+#changelist-filter { top: 0; }
+#changelist-filter h2 { color: #FFFFFF; background: #0F766E; }
+#changelist-filter h3 { color: #475569; font-size: .72rem; font-weight: 800; text-transform: uppercase; }
+#changelist-filter li.selected { border-left-color: #0F766E; }
+#changelist-filter li.selected a { color: #115E59; }
+
+/* 10. Breadcrumbs */
+div.breadcrumbs {
+    padding: 11px 32px;
+    color: #64748B;
+    background: #FFFFFF;
+    border-bottom: 1px solid #E2E8F0;
+}
+div.breadcrumbs a { color: #0F766E; font-weight: 650; }
+
+/* 11. Recent actions */
+#content-related .module h2 { border-radius: 10px 10px 0 0; }
+#recent-actions-module .actionlist { padding: 6px 16px 12px; }
+#recent-actions-module .actionlist li { padding: 11px 0; border-bottom: 1px solid #E2E8F0; }
+#recent-actions-module .actionlist li:last-child { border-bottom: 0; }
+#recent-actions-module .mini.quiet { color: #64748B; }
+
+/* 12. Status badges */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 9px;
+    color: #475569;
+    background: #F1F5F9;
+    border: 1px solid #CBD5E1;
+    border-radius: 999px;
+    font-size: .68rem;
+    font-weight: 800;
+    letter-spacing: .035em;
+    line-height: 1.2;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+.status-active, .status-passed, .status-completed { color: #166534; background: #F0FDF4; border-color: #BBF7D0; }
+.status-approved { color: #115E59; background: #F0FDFA; border-color: #99F6E4; }
+.status-under-review, .status-low, .status-info { color: #1D4ED8; background: #EFF6FF; border-color: #BFDBFE; }
+.status-moderate, .status-warning { color: #92400E; background: #FFFBEB; border-color: #FDE68A; }
+.status-high { color: #9A3412; background: #FFF7ED; border-color: #FED7AA; }
+.status-critical, .status-failed, .status-cancelled { color: #991B1B; background: #FEF2F2; border-color: #FECACA; }
+.status-retired { color: #7F1D1D; background: #F8FAFC; border-color: #CBD5E1; }
+.status-draft, .status-not-checked, .status-not-applicable { color: #475569; background: #F1F5F9; border-color: #CBD5E1; }
+
+/* 13. Login */
+body.login { background: #F8FAFC; }
+.login #container {
+    width: min(430px, calc(100% - 32px));
+    margin-top: 8vh;
+    overflow: hidden;
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 14px;
+    box-shadow: 0 18px 40px rgba(15, 23, 42, .09);
+}
+.login #header { height: auto; min-height: 0; padding: 24px; justify-content: center; }
+.login .pharmaguard-admin-brand a { align-items: flex-start; }
+.login .pharmaguard-admin-brand-copy small { max-width: 280px; white-space: normal; }
+.login #content { max-width: none; padding: 28px; }
+.login .form-row { padding: 0 0 16px; }
+.login .form-row label { padding-right: 0; }
+.login .form-row input { width: 100%; box-sizing: border-box; }
+.login .submit-row { padding: 0; background: transparent; border: 0; box-shadow: none; }
+.login .submit-row input { width: 100%; }
+
+/* 14. Messages and deletion */
+ul.messagelist { max-width: 1480px; margin: 18px auto 0; padding: 0 32px; }
+ul.messagelist li { border: 1px solid #BFDBFE; border-radius: 8px; }
+ul.messagelist li.success { color: #166534; background-color: #F0FDF4; border-color: #BBF7D0; }
+ul.messagelist li.warning { color: #92400E; background-color: #FFFBEB; border-color: #FDE68A; }
+ul.messagelist li.error { color: #991B1B; background-color: #FEF2F2; border-color: #FECACA; }
+.delete-confirmation #content-main, .delete-confirmation form {
+    padding: 20px;
+    background: #FFFFFF;
+    border: 1px solid #FECACA;
+    border-radius: 10px;
+}
+
+/* 15. Responsive */
+@media (max-width: 1100px) {
+    .dashboard #content { grid-template-columns: minmax(0, 1fr) 280px; }
+    .dashboard #content-main { grid-template-columns: 1fr; }
+    #changelist .changelist-form-container { width: calc(100% - 250px); }
+}
+
+@media (max-width: 800px) {
+    #header { align-items: flex-start; gap: 10px; padding: 12px 16px; }
+    .pharmaguard-admin-brand-copy small { display: none; }
+    #user-tools { text-align: right; }
+    #content { padding: 20px 16px 32px; }
+    div.breadcrumbs { padding-inline: 16px; }
+    .dashboard #content { display: block; }
+    .dashboard #content-related { width: auto; margin: 18px 0 0; }
+    #changelist .changelist-form-container { width: 100%; }
+    #changelist-filter { width: 100%; margin-top: 16px; }
+    #changelist-filter-extra-actions { margin-bottom: 0; }
+    .submit-row { justify-content: stretch; }
+    .submit-row input, .submit-row a { flex: 1 1 auto; text-align: center; }
+}
+
+@media (max-width: 520px) {
+    #header { display: block; }
+    #user-tools { margin-top: 10px; text-align: left; }
+    .pharmaguard-admin-brand-copy strong { font-size: 1rem; }
+    .object-tools { float: none; margin: 0 0 14px; }
+    .object-tools li { float: none; }
+    .object-tools a { display: block; text-align: center; }
+    #changelist-search #searchbar { min-width: 0; width: 100%; margin-bottom: 8px; }
+}

@@ -1,0 +1,230 @@
+{% extends 'base.html' %}
+{% load currency %}
+
+{% block title %}{{ title }} | PharmaGuard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>{{ title }}</h1>
+    <div class="page-actions">
+        <form action="{% url 'dispensing:cancel_transaction' txn.pk %}" method="post"
+              onsubmit="return confirm('Cancel this transaction? No stock will be changed.');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-danger">Cancel Transaction</button>
+        </form>
+    </div>
+</div>
+
+<div class="dispensing-layout">
+
+    <!-- LEFT: Medicine Search + Cart Table -->
+    <div>
+        <!-- Medicine Search -->
+        <div class="filter-card">
+            <h3 style="margin-bottom:14px; font-size:1rem; font-weight:600;">Add Medicine</h3>
+
+            <div class="medicine-search">
+                <input type="text" id="medicine-search-input" class="form-control"
+                       placeholder="Search by generic name or brand name…"
+                       autocomplete="off">
+                <div id="medicine-search-results"
+                     class="medicine-search-results">
+                </div>
+            </div>
+
+            <form method="post" action="{% url 'dispensing:add_to_cart' txn.pk %}" id="add-to-cart-form">
+                {% csrf_token %}
+                <input type="hidden" name="medicine_id" id="selected-medicine-id">
+                <div class="cart-entry-row">
+                    <div style="flex:1;">
+                        <label class="form-label">
+                            Selected Medicine
+                        </label>
+                        <input type="text" id="selected-medicine-display" class="form-control" readonly placeholder="None selected">
+                    </div>
+                    <div style="width:120px;">
+                        <label for="qty-input" class="form-label">
+                            Quantity
+                        </label>
+                        <input type="number" name="quantity" id="qty-input" class="form-control"
+                               min="1" value="1">
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="add-btn" disabled>
+                        Add to Cart
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Cart Table -->
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Medicine</th>
+                        <th style="text-align:right;">Qty</th>
+                        <th style="text-align:right;">Est. Unit Price</th>
+                        <th style="text-align:right;">Est. Line Total</th>
+                        <th style="text-align:center;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for line in cart_display %}
+                    <tr>
+                        <td>
+                            <div style="font-weight:500;">{{ line.medicine_name }}</div>
+                            {% if line.available < line.quantity %}
+                                <small style="color:var(--danger);">⚠ Available: {{ line.available }}</small>
+                            {% else %}
+                                <small style="color:#6c757d;">Available: {{ line.available }}</small>
+                            {% endif %}
+                        </td>
+                        <td style="text-align:right;">{{ line.quantity }}</td>
+                        <td style="text-align:right;">{{ line.unit_price|currency }}</td>
+                        <td style="text-align:right; font-weight:500;">{{ line.line_total|currency }}</td>
+                        <td style="text-align:center;">
+                            <form method="post"
+                                  action="{% url 'dispensing:remove_from_cart' txn.pk line.medicine_id %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-danger"
+                                        onclick="return confirm('Remove this item?');">
+                                    Remove
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="empty-state" style="padding:30px 0;">
+                            No items in cart yet. Search for a medicine above to begin.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- RIGHT: Order Summary -->
+    <div>
+        <div class="form-card" style="max-width:100%;">
+            <h3 style="font-size:1rem; font-weight:600; margin-bottom:16px;">Order Summary</h3>
+
+            <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:0.95rem;">
+                <span style="color:#6c757d;">Transaction</span>
+                <span style="font-weight:500;">{{ txn.transaction_number }}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:0.95rem;">
+                <span style="color:#6c757d;">Type</span>
+                <span>{{ txn.get_transaction_type_display }}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:0.95rem;">
+                <span style="color:#6c757d;">Staff</span>
+                <span>{{ txn.user.full_name|default:txn.user.username }}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:16px; font-size:0.95rem;">
+                <span style="color:#6c757d;">Items</span>
+                <span>{{ cart_display|length }}</span>
+            </div>
+
+            <hr style="border-color:var(--border-color); margin-bottom:16px;">
+
+            <div style="display:flex; justify-content:space-between; font-size:1.1rem; font-weight:700; margin-bottom:20px;">
+                <span>Est. Total</span>
+                <span>{{ preview_total|currency }}</span>
+            </div>
+
+            <p style="font-size:0.78rem; color:#6c757d; margin-bottom:16px;">
+                * Prices are estimated from current batch data. The confirmed total may differ slightly
+                if multiple batches with different prices are used. Stock is deducted only on confirmation.
+            </p>
+
+            {% include 'dispensing/_clinical_review.html' %}
+
+            {% if cart_display %}
+            <form method="post" action="{% url 'dispensing:confirm_sale' txn.pk %}"
+                  onsubmit="return confirm('Confirm this sale? This will deduct stock and cannot be undone.');">
+                {% csrf_token %}
+                {% if clinical_review.status == 'WARNING' %}
+                <div class="alert alert-warning acknowledgement-panel">
+                    <label style="display:block; font-weight:600; margin-bottom:8px;">
+                        <input type="checkbox" name="acknowledge_clinical_warnings" required>
+                        I have reviewed and acknowledge all clinical warnings.
+                    </label>
+                    <label for="sale-acknowledgement-note" style="display:block; font-size:0.82rem;">Acknowledgement note (optional)</label>
+                    <textarea id="sale-acknowledgement-note" name="acknowledgement_note" class="form-control" rows="2"></textarea>
+                </div>
+                {% endif %}
+                <button type="submit" class="btn btn-primary btn-block">
+                    ✓ Confirm & Dispense
+                </button>
+            </form>
+            {% else %}
+            <button class="btn btn-primary btn-block" disabled>
+                ✓ Confirm & Dispense
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+
+<script>
+(function () {
+    const searchInput = document.getElementById('medicine-search-input');
+    const resultsBox = document.getElementById('medicine-search-results');
+    const hiddenId = document.getElementById('selected-medicine-id');
+    const displayInput = document.getElementById('selected-medicine-display');
+    const addBtn = document.getElementById('add-btn');
+    let debounceTimer;
+
+    searchInput.addEventListener('input', function () {
+        clearTimeout(debounceTimer);
+        const q = this.value.trim();
+        if (q.length < 2) { resultsBox.style.display = 'none'; return; }
+        debounceTimer = setTimeout(() => fetchMedicines(q), 280);
+    });
+
+    function fetchMedicines(q) {
+        fetch(`{% url 'dispensing:medicine_search_json' %}?q=${encodeURIComponent(q)}`)
+            .then(r => r.json())
+            .then(data => {
+                resultsBox.innerHTML = '';
+                if (!data.results.length) {
+                    resultsBox.innerHTML = '<div class="medicine-search-empty">No medicines found.</div>';
+                    resultsBox.style.display = 'block';
+                    return;
+                }
+                data.results.forEach(med => {
+                    const item = document.createElement('div');
+                    item.className = 'medicine-result';
+                    item.innerHTML = `
+                        <span>${med.name}</span>
+                        <span class="medicine-result-stock ${med.has_stock ? 'is-available' : 'is-unavailable'}">
+                            ${med.has_stock ? 'Stock: ' + med.available_stock : 'Out of stock'}
+                        </span>`;
+                    item.addEventListener('click', () => {
+                        hiddenId.value = med.id;
+                        displayInput.value = med.name;
+                        searchInput.value = '';
+                        resultsBox.style.display = 'none';
+                        addBtn.disabled = !med.has_stock;
+                        if (!med.has_stock) {
+                            displayInput.value = med.name + ' (OUT OF STOCK)';
+                        }
+                    });
+                    resultsBox.appendChild(item);
+                });
+                resultsBox.style.display = 'block';
+            })
+            .catch(() => { resultsBox.style.display = 'none'; });
+    }
+
+    document.addEventListener('click', function (e) {
+        if (!searchInput.contains(e.target) && !resultsBox.contains(e.target)) {
+            resultsBox.style.display = 'none';
+        }
+    });
+})();
+</script>
+{% endblock %}

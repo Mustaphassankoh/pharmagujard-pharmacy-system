@@ -1,0 +1,10 @@
+|--- warning_check_count <= 0.50
+|   |--- class: LOW
+|--- warning_check_count >  0.50
+|   |--- critical_alert_count <= 0.50
+|   |   |--- high_alert_count <= 0.50
+|   |   |   |--- class: MODERATE
+|   |   |--- high_alert_count >  0.50
+|   |   |   |--- class: HIGH
+|   |--- critical_alert_count >  0.50
+|   |   |--- class: CRITICAL

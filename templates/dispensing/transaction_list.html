@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+{% load currency %}
+
+{% block title %}{{ title }} | PharmaGuard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>{{ title }}</h1>
+    <div class="page-actions">
+        <a href="{% url 'dispensing:new_direct_sale' %}" class="btn btn-outline-primary">+ New Direct Sale</a>
+        <a href="{% url 'dispensing:new_external_prescription' %}" class="btn btn-outline-primary">+ New External Prescription</a>
+        <a href="{% url 'dispensing:new_consultation' %}" class="btn btn-primary">+ New Consultation</a>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="filter-card">
+    <form method="get" class="filter-form">
+        <div class="filter-group">
+            <label for="q">Search</label>
+            <input type="text" name="q" id="q" class="form-control"
+                   placeholder="Transaction # or staff name…" value="{{ query }}">
+        </div>
+        <div class="filter-group">
+            <label for="status">Status</label>
+            <select name="status" id="status" class="form-select">
+                <option value="">All Statuses</option>
+                {% for val, label in status_choices %}
+                    <option value="{{ val }}" {% if status_filter == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="type">Type</label>
+            <select name="type" id="type" class="form-select">
+                <option value="">All Types</option>
+                {% for val, label in type_choices %}
+                    <option value="{{ val }}" {% if type_filter == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-primary">Filter</button>
+            <a href="{% url 'dispensing:transaction_list' %}" class="btn btn-outline-secondary">Reset</a>
+        </div>
+    </form>
+</div>
+
+<!-- Results Table -->
+<div class="table-container">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Transaction #</th>
+                <th>Type</th>
+                <th>Staff Member</th>
+                <th>Status</th>
+                <th style="text-align:right;">Total Amount</th>
+                <th>Date / Time</th>
+                <th style="text-align:center;">Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for txn in page_obj %}
+            <tr>
+                <td><strong>{{ txn.transaction_number }}</strong></td>
+                <td>{{ txn.get_transaction_type_display }}</td>
+                <td>{{ txn.user.full_name|default:txn.user.username }}</td>
+                <td>
+                    {% if txn.status == 'COMPLETED' %}
+                        <span class="badge badge-success">Completed</span>
+                    {% elif txn.status == 'DRAFT' %}
+                        <span class="badge badge-secondary">Draft</span>
+                    {% elif txn.status == 'CANCELLED' %}
+                        <span class="badge badge-danger">Cancelled</span>
+                    {% endif %}
+                </td>
+                <td style="text-align:right;">
+                    {% if txn.status == 'COMPLETED' %}
+                        {{ txn.total_amount|currency }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                <td>{{ txn.created_at|date:"Y-m-d H:i" }}</td>
+                <td style="text-align:center;" class="btn-actions">
+                    {% if txn.status == 'DRAFT' %}
+                        {% if txn.transaction_type == 'EXTERNAL_PRESCRIPTION' %}
+                            <a href="{% url 'dispensing:external_prescription_cart' txn.pk %}"
+                               class="btn btn-sm btn-outline-primary">Resume</a>
+                        {% elif txn.transaction_type == 'CONSULTATION' %}
+                            <a href="{% url 'dispensing:consultation_cart' txn.pk %}"
+                               class="btn btn-sm btn-outline-primary">Resume</a>
+                        {% else %}
+                            <a href="{% url 'dispensing:sale_cart' txn.pk %}"
+                               class="btn btn-sm btn-outline-primary">Resume</a>
+                        {% endif %}
+                    {% else %}
+                        <a href="{% url 'dispensing:transaction_detail' txn.pk %}"
+                           class="btn btn-sm btn-outline-primary">View</a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" class="empty-state">No dispensing transactions found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Pagination -->
+{% if page_obj.has_other_pages %}
+<div class="pagination-container">
+    <span>
+        Showing {{ page_obj.start_index }}–{{ page_obj.end_index }}
+        of {{ page_obj.paginator.count }} transactions
+    </span>
+    <ul class="pagination">
+        {% if page_obj.has_previous %}
+            <li><a href="?page={{ page_obj.previous_page_number }}&q={{ query }}&status={{ status_filter }}&type={{ type_filter }}">&laquo;</a></li>
+        {% else %}
+            <li class="disabled"><span>&laquo;</span></li>
+        {% endif %}
+
+        {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+                <li class="active"><span>{{ num }}</span></li>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <li><a href="?page={{ num }}&q={{ query }}&status={{ status_filter }}&type={{ type_filter }}">{{ num }}</a></li>
+            {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+            <li><a href="?page={{ page_obj.next_page_number }}&q={{ query }}&status={{ status_filter }}&type={{ type_filter }}">&raquo;</a></li>
+        {% else %}
+            <li class="disabled"><span>&raquo;</span></li>
+        {% endif %}
+    </ul>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ status_code }} &mdash; PharmaGuard{% endblock %}
+
+{% block content %}
+<section class="login-container" aria-labelledby="error-title">
+    <div class="login-brand">
+        <span class="brand-mark brand-mark-large" aria-hidden="true">+</span>
+        <h1>PharmaGuard</h1>
+        <p>Intelligent Pharmacy Management &amp; Clinical Decision Support</p>
+    </div>
+    <div class="login-heading text-center">
+        <p class="stat-label">Error {{ status_code }}</p>
+        <h2 id="error-title">{{ error_title }}</h2>
+        <p>{{ error_message }}</p>
+    </div>
+    <div class="form-actions justify-content-center">
+        <a class="btn btn-primary" href="{% url 'home' %}">Return to PharmaGuard</a>
+    </div>
+</section>
+{% endblock %}

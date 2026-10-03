@@ -1,0 +1,341 @@
+{% extends 'base.html' %}
+{% load currency %}
+
+{% block title %}{{ title }} | PharmaGuard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>{{ title }}</h1>
+    <div class="page-actions">
+        <a href="{% url 'dispensing:transaction_list' %}" class="btn btn-outline-secondary">← Back to Transactions</a>
+        <a href="{% url 'dispensing:new_direct_sale' %}" class="btn btn-primary">+ New Direct Sale</a>
+    </div>
+</div>
+
+<!-- Transaction Header Card -->
+<div class="detail-card" style="max-width:100%; margin-bottom:20px;">
+    <div class="detail-header">
+        <div>
+            <div style="font-size:0.8rem; color:#6c757d; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">
+                Transaction Number
+            </div>
+            <div style="font-size:1.4rem; font-weight:700;">{{ txn.transaction_number }}</div>
+        </div>
+        <div>
+            {% if txn.status == 'COMPLETED' %}
+                <span class="badge badge-success" style="font-size:0.9rem; padding:6px 14px;">Completed</span>
+            {% elif txn.status == 'DRAFT' %}
+                <span class="badge badge-secondary" style="font-size:0.9rem; padding:6px 14px;">Draft</span>
+            {% elif txn.status == 'CANCELLED' %}
+                <span class="badge badge-danger" style="font-size:0.9rem; padding:6px 14px;">Cancelled</span>
+            {% endif %}
+        </div>
+    </div>
+    <div class="detail-body">
+        <div class="detail-grid">
+            <div class="detail-item">
+                <h4>Transaction Type</h4>
+                <p>{{ txn.get_transaction_type_display }}</p>
+            </div>
+            <div class="detail-item">
+                <h4>Staff Member</h4>
+                <p>{{ txn.user.full_name|default:txn.user.username }}</p>
+            </div>
+            <div class="detail-item">
+                <h4>Created At</h4>
+                <p>{{ txn.created_at|date:"F j, Y — H:i" }}</p>
+            </div>
+            {% if txn.completed_at %}
+            <div class="detail-item">
+                <h4>Completed At</h4>
+                <p>{{ txn.completed_at|date:"F j, Y — H:i" }}</p>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if txn.notes %}
+        <div class="detail-notes">
+            <h4 style="font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px; color:#6c757d; margin-bottom:6px;">Notes</h4>
+            <p style="color:var(--text-dark);">{{ txn.notes }}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if txn.transaction_type == 'EXTERNAL_PRESCRIPTION' and txn.external_prescription %}
+<div class="detail-card" style="max-width:100%; margin-bottom:20px;">
+    <div class="detail-header">
+        <div style="font-size:1.1rem; font-weight:600;">Prescription Metadata</div>
+    </div>
+    <div class="detail-body">
+        <div class="detail-grid">
+            <div class="detail-item">
+                <h4>Prescription Source</h4>
+                <p>{{ txn.external_prescription.get_prescription_source_display|default:"-" }}</p>
+            </div>
+            <div class="detail-item">
+                <h4>Prescriber Name</h4>
+                <p>{{ txn.external_prescription.prescriber_name|default:"-" }}</p>
+            </div>
+            <div class="detail-item">
+                <h4>Facility Name</h4>
+                <p>{{ txn.external_prescription.facility_name|default:"-" }}</p>
+            </div>
+            <div class="detail-item">
+                <h4>Prescription Date</h4>
+                <p>{{ txn.external_prescription.prescription_date|date:"F j, Y"|default:"-" }}</p>
+            </div>
+            <div class="detail-item">
+                <h4>Reference Number</h4>
+                <p>{{ txn.external_prescription.reference_number|default:"-" }}</p>
+            </div>
+        </div>
+        {% if txn.external_prescription.notes %}
+        <div class="detail-notes" style="margin-top:15px;">
+            <h4 style="font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px; color:#6c757d; margin-bottom:6px;">Prescription Notes</h4>
+            <p style="color:var(--text-dark);">{{ txn.external_prescription.notes }}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+{% if txn.transaction_type == 'CONSULTATION' and txn.consultation %}
+<div class="detail-card" style="max-width:100%; margin-bottom:20px;">
+    <div class="detail-header">
+        <div style="font-size:1.1rem; font-weight:600;">Consultation Details</div>
+    </div>
+    <div class="detail-body">
+        <div class="detail-grid">
+            <div class="detail-item">
+                <h4>Sex</h4>
+                <p>{{ txn.consultation.get_sex_display|default:"-" }}</p>
+            </div>
+            <div class="detail-item">
+                <h4>Age</h4>
+                <p>{% if txn.consultation.age %}{{ txn.consultation.age }} years{% else %}-{% endif %}</p>
+            </div>
+            <div class="detail-item">
+                <h4>Weight (kg)</h4>
+                <p>{{ txn.consultation.weight|default:"-" }}</p>
+            </div>
+            <div class="detail-item">
+                <h4>Pregnancy Status</h4>
+                <p>{{ txn.consultation.get_pregnancy_status_display|default:"-" }}</p>
+            </div>
+        </div>
+        
+        <div class="detail-notes" style="margin-top:15px;">
+            <h4 style="font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px; color:#6c757d; margin-bottom:6px;">Symptoms</h4>
+            <p style="color:var(--text-dark);">{{ txn.consultation.symptoms|linebreaksbr }}</p>
+        </div>
+
+        {% if txn.consultation.symptom_duration %}
+        <div class="detail-notes" style="margin-top:15px;">
+            <h4 style="font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px; color:#6c757d; margin-bottom:6px;">Symptom Duration</h4>
+            <p style="color:var(--text-dark);">{{ txn.consultation.symptom_duration }}</p>
+        </div>
+        {% endif %}
+
+        {% if txn.consultation.known_allergies %}
+        <div class="detail-notes" style="margin-top:15px;">
+            <h4 style="font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px; color:#6c757d; margin-bottom:6px;">Additional Allergy Notes</h4>
+            <p style="color:var(--text-dark);">{{ txn.consultation.known_allergies|linebreaksbr }}</p>
+            <p style="color:#6c757d; font-size:0.82rem; margin-top:6px;">Free-text allergy notes were not automatically evaluated.</p>
+        </div>
+        {% endif %}
+
+        {% if txn.consultation.structured_allergies.all %}
+        <div class="detail-notes" style="margin-top:15px;">
+            <h4 style="font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px; color:#6c757d; margin-bottom:6px;">Structured Allergies</h4>
+            <p style="color:var(--text-dark);">
+                {% for allergen in txn.consultation.structured_allergies.all %}{{ allergen.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+            </p>
+        </div>
+        {% endif %}
+
+        {% if txn.consultation.current_medications %}
+        <div class="detail-notes" style="margin-top:15px;">
+            <h4 style="font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px; color:#6c757d; margin-bottom:6px;">Current Medications</h4>
+            <p style="color:var(--text-dark);">{{ txn.consultation.current_medications|linebreaksbr }}</p>
+            <p style="color:#6c757d; font-size:0.82rem; margin-top:6px;">Current medications were recorded as free text and were not included in structured drug-interaction matching.</p>
+        </div>
+        {% endif %}
+
+        {% if txn.consultation.notes %}
+        <div class="detail-notes" style="margin-top:15px;">
+            <h4 style="font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px; color:#6c757d; margin-bottom:6px;">Notes</h4>
+            <p style="color:var(--text-dark);">{{ txn.consultation.notes|linebreaksbr }}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+{% if txn.clinical_review %}
+{% if historical_risk_assessment %}<div class="detail-card" style="max-width:100%; margin-bottom:20px;"><div class="detail-header"><strong>Historical AI Review Priority</strong></div><div class="detail-body"><p><strong>Final priority:</strong> {{ historical_risk_assessment.final_priority }}</p><p><strong>Raw prediction:</strong> {{ historical_risk_assessment.predicted_priority }}</p><p><strong>Model version:</strong> {{ historical_risk_assessment.model_version.version }}</p><p><strong>Model confidence:</strong> {{ historical_risk_assessment.prediction_probability }}</p><p>{{ historical_risk_assessment.explanation }}</p><pre>{{ historical_risk_assessment.decision_path }}</pre><p><strong>DEVELOPMENT / SYNTHETIC DATA — NOT CLINICALLY VALIDATED</strong></p><p><small>This model prioritizes pharmacist review. It does not diagnose, prescribe, determine clinical safety, or override deterministic clinical rules.</small></p></div></div>{% endif %}
+<div class="detail-card" style="max-width:100%; margin-bottom:20px;">
+    <div class="detail-header">
+        <div style="font-size:1.1rem; font-weight:600;">Historical Clinical Safety Review</div>
+    </div>
+    <div class="detail-body">
+        <div class="detail-grid">
+            <div class="detail-item">
+                <h4>Overall Clinical Review</h4>
+                <p><strong>{{ txn.clinical_review.status }}</strong></p>
+            </div>
+            <div class="detail-item">
+                <h4>Checked Pairs</h4>
+                <p>{{ txn.clinical_review.checked_pairs }}</p>
+            </div>
+            <div class="detail-item">
+                <h4>Checked At</h4>
+                <p>{{ txn.clinical_review.checked_at|date:"F j, Y — H:i"|default:"-" }}</p>
+            </div>
+        </div>
+
+        <h3 style="font-size:1rem; margin-top:18px;">Drug Interaction Review</h3>
+        <p><strong>Status:</strong> {{ historical_interaction_result.status|default:txn.clinical_review.status }}</p>
+        {% for alert in historical_interaction_alerts %}
+        <div class="clinical-alert clinical-alert-{{ alert.severity|lower }}">
+            <div style="display:flex; justify-content:space-between; gap:8px; margin-bottom:10px;">
+                <strong>Drug Interaction Warning</strong>
+                <span class="badge badge-{{ alert.severity|lower }}">{{ alert.get_severity_display|upper }}</span>
+            </div>
+            <p><strong>Medicine Pair:</strong> {{ alert.medicine_a }} + {{ alert.medicine_b }}</p>
+            <p><strong>Description:</strong> {{ alert.description }}</p>
+            <p><strong>Explanation:</strong> {{ alert.explanation|linebreaksbr }}</p>
+            <p><strong>Recommendation:</strong> {{ alert.recommendation|linebreaksbr }}</p>
+            <p><strong>Source/Reference:</strong> {{ alert.source_reference }}</p>
+            <p><strong>Acknowledged By:</strong> {{ alert.acknowledged_by.full_name|default:alert.acknowledged_by.username|default:"Not acknowledged" }}</p>
+            <p><strong>Acknowledged At:</strong> {{ alert.acknowledged_at|date:"F j, Y — H:i"|default:"-" }}</p>
+            <p style="margin-bottom:0;"><strong>Acknowledgement Note:</strong> {{ alert.acknowledgement_note|default:"-"|linebreaksbr }}</p>
+        </div>
+        {% empty %}
+        <p style="color:#6c757d; margin-top:12px;">No drug-interaction warnings were recorded for this transaction.</p>
+        {% endfor %}
+
+        <h3 style="font-size:1rem; margin-top:22px;">Allergy Review</h3>
+        {% if historical_allergy_result %}
+            <p><strong>Status:</strong> {{ historical_allergy_result.status }}</p>
+            {% if historical_allergy_result.details.reason %}<p style="color:#6c757d;">{{ historical_allergy_result.details.reason }}</p>{% endif %}
+        {% else %}
+            <p><strong>Status:</strong> NOT_CHECKED</p>
+            <p style="color:#6c757d;">No historical structured allergy result was recorded.</p>
+        {% endif %}
+        {% for alert in historical_allergy_alerts %}
+        <div class="clinical-alert clinical-alert-{{ alert.severity|lower }}">
+            <div style="display:flex; justify-content:space-between; gap:8px; margin-bottom:10px;">
+                <strong>Allergy Warning</strong>
+                <span class="badge badge-{{ alert.severity|lower }}">{{ alert.get_severity_display|upper }}</span>
+            </div>
+            <p><strong>Allergen:</strong> {{ alert.allergen }}</p>
+            <p><strong>Medicine:</strong> {{ alert.medicine_a }}</p>
+            <p><strong>Description:</strong> {{ alert.description }}</p>
+            <p><strong>Explanation:</strong> {{ alert.explanation|linebreaksbr }}</p>
+            <p><strong>Recommendation:</strong> {{ alert.recommendation|linebreaksbr }}</p>
+            <p><strong>Source/Reference:</strong> {{ alert.source_reference }}</p>
+            <p><strong>Acknowledged By:</strong> {{ alert.acknowledged_by.full_name|default:alert.acknowledged_by.username|default:"Not acknowledged" }}</p>
+            <p><strong>Acknowledged At:</strong> {{ alert.acknowledged_at|date:"F j, Y - H:i"|default:"-" }}</p>
+            <p style="margin-bottom:0;"><strong>Acknowledgement Note:</strong> {{ alert.acknowledgement_note|default:"-"|linebreaksbr }}</p>
+        </div>
+        {% empty %}
+        <p style="color:#6c757d; margin-top:12px;">No allergy warnings were recorded for this transaction.</p>
+        {% endfor %}
+
+        <h3 style="font-size:1rem; margin-top:22px;">Dosage Review</h3>
+        {% if historical_dosage_result %}
+            <p><strong>Status:</strong> {{ historical_dosage_result.status }}</p>
+            {% if historical_dosage_result.details.reason %}<p style="color:#6c757d;">{{ historical_dosage_result.details.reason }}</p>{% endif %}
+        {% else %}
+            <p><strong>Status:</strong> NOT_CHECKED</p>
+        {% endif %}
+        {% for alert in historical_dosage_alerts %}
+        <div class="clinical-alert clinical-alert-{{ alert.severity|lower }}">
+            <strong>Dosage Warning — {{ alert.get_severity_display|upper }}</strong>
+            <p><strong>Medicine:</strong> {{ alert.medicine_a }}</p>
+            <p><strong>Entered dosage:</strong> {{ alert.snapshot_details.entered_dose }} {{ alert.snapshot_details.dose_unit }}{% if alert.snapshot_details.frequency_per_day %}, {{ alert.snapshot_details.frequency_per_day }} times/day{% endif %}{% if alert.snapshot_details.duration_days %}, {{ alert.snapshot_details.duration_days }} days{% endif %}</p>
+            {% if alert.snapshot_details.calculated_daily_dose %}<p><strong>Calculated daily dose:</strong> {{ alert.snapshot_details.calculated_daily_dose }} {{ alert.snapshot_details.dose_unit }}/day</p>{% endif %}
+            <p><strong>Rule threshold:</strong> {{ alert.snapshot_details.applicable_limit }} {{ alert.snapshot_details.dose_unit }}</p>
+            <p><strong>Reason:</strong> {{ alert.get_dosage_reason_display }}</p>
+            <p><strong>Explanation:</strong> {{ alert.explanation }}</p>
+            <p><strong>Recommendation:</strong> {{ alert.recommendation }}</p>
+            <p><strong>Source:</strong> {{ alert.source_reference }}</p>
+            <p><strong>Acknowledged By:</strong> {{ alert.acknowledged_by.full_name|default:alert.acknowledged_by.username|default:"Not acknowledged" }}</p>
+            <p><strong>Acknowledged At:</strong> {{ alert.acknowledged_at|date:"F j, Y - H:i"|default:"-" }}</p>
+            <p><strong>Acknowledgement Note:</strong> {{ alert.acknowledgement_note|default:"-" }}</p>
+        </div>
+        {% empty %}<p style="color:#6c757d;">No dosage warnings were recorded for this transaction.</p>{% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Dispensed Items Table -->
+<div class="table-container" style="margin-bottom:20px;">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Medicine</th>
+                <th>Batch #</th>
+                {% if txn.transaction_type == 'EXTERNAL_PRESCRIPTION' %}
+                <th>Instructions</th>
+                {% else %}
+                <th>Expiry Date</th>
+                {% endif %}
+                <th style="text-align:right;">Qty</th>
+                <th style="text-align:right;">Unit Price</th>
+                <th style="text-align:right;">Line Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in txn.items.all %}
+            <tr>
+                <td>
+                    <div style="font-weight:500;">{{ item.medicine.generic_name }}</div>
+                    {% if item.medicine.brand_name %}
+                        <small style="color:#6c757d;">{{ item.medicine.brand_name }}</small>
+                    {% endif %}
+                    <small style="display:block; color:#6c757d;">
+                        {{ item.medicine.strength }} — {{ item.medicine.get_dosage_form_display }}
+                    </small>
+                </td>
+                <td><code>{{ item.batch.batch_number }}</code></td>
+                {% if txn.transaction_type == 'EXTERNAL_PRESCRIPTION' %}
+                <td>
+                    {% if item.dose %}<span style="font-size:0.85em;"><strong>Dose:</strong> {{ item.dose }}</span><br>{% endif %}
+                    {% if item.frequency %}<span style="font-size:0.85em;"><strong>Freq:</strong> {{ item.frequency }}</span><br>{% endif %}
+                    {% if item.duration %}<span style="font-size:0.85em;"><strong>Dur:</strong> {{ item.duration }}</span><br>{% endif %}
+                    {% if item.instructions %}<span style="font-size:0.85em;"><strong>Notes:</strong> {{ item.instructions }}</span>{% endif %}
+                    {% if item.dose_amount %}<br><span style="font-size:0.85em;"><strong>Structured:</strong> {{ item.dose_amount }} {{ item.dose_unit }}{% if item.frequency_per_day %}, {{ item.frequency_per_day }}/day{% endif %}{% if item.duration_days %}, {{ item.duration_days }} days{% endif %}</span>{% endif %}
+                    {% if not item.dose and not item.frequency and not item.duration and not item.instructions %}
+                        <span style="font-size:0.85em; color:#999;">-</span>
+                    {% endif %}
+                </td>
+                {% else %}
+                <td>{{ item.batch.expiry_date|date:"Y-m-d" }}</td>
+                {% endif %}
+                <td style="text-align:right;">{{ item.quantity }}</td>
+                <td style="text-align:right;">{{ item.unit_price|currency }}</td>
+                <td style="text-align:right; font-weight:600;">{{ item.line_total|currency }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="empty-state">No items in this transaction.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        {% if txn.items.all %}
+        <tfoot>
+            <tr style="background:#f8f9fa;">
+                <td colspan="5" style="text-align:right; font-weight:700; padding:12px 16px;">
+                    Total Amount
+                </td>
+                <td style="text-align:right; font-weight:700; font-size:1.1rem; padding:12px 16px;">
+                    {{ txn.total_amount|currency }}
+                </td>
+            </tr>
+        </tfoot>
+        {% endif %}
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}PharmaGuard{% endblock %}</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=pharmaguard-20261002-3">
+</head>
+<body class="{% if not user.is_authenticated %}auth-page{% endif %}">
+    <div class="layout">
+        <!-- Sidebar Navigation -->
+        {% if user.is_authenticated %}
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a class="brand" href="{% url 'dashboard' %}" aria-label="PharmaGuard dashboard">
+                    <span class="brand-mark" aria-hidden="true">+</span>
+                    <span class="brand-copy">
+                        <strong>PharmaGuard</strong>
+                        <small>Intelligent Pharmacy Management</small>
+                    </span>
+                </a>
+            </div>
+            <nav class="sidebar-nav" aria-label="Main navigation">
+                <ul>
+                    <li class="nav-section">Overview</li>
+                    <li><a class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'dashboard' %}">Dashboard</a></li>
+                    <li class="nav-section">Pharmacy</li>
+                    <li><a class="{% if request.resolver_match.namespace == 'medicines' %}active{% endif %}" href="{% url 'medicines:medicine_list' %}">Medicines</a></li>
+                    {% if user.role == 'ADMIN' or user.is_superuser %}
+                    <li><a class="nav-subitem {% if request.resolver_match.url_name == 'category_list' %}active{% endif %}" href="{% url 'medicines:category_list' %}">Categories</a></li>
+                    {% endif %}
+                    <li><a class="{% if request.resolver_match.namespace == 'inventory' %}active{% endif %}" href="{% url 'inventory:inventory_list' %}">Inventory</a></li>
+                    <li><a class="nav-subitem {% if request.resolver_match.url_name == 'batch_list' %}active{% endif %}" href="{% url 'inventory:batch_list' %}">Medicine Batches</a></li>
+                    <li><a class="nav-subitem {% if request.resolver_match.url_name == 'low_stock_list' %}active{% endif %}" href="{% url 'inventory:low_stock_list' %}">Low Stock</a></li>
+                    <li><a class="nav-subitem {% if request.resolver_match.url_name == 'expiry_list' %}active{% endif %}" href="{% url 'inventory:expiry_list' %}">Expiry Alerts</a></li>
+                    {% if user.role == 'ADMIN' or user.is_superuser %}
+                    <li><a class="nav-subitem {% if request.resolver_match.url_name == 'transaction_list' and request.resolver_match.namespace == 'inventory' %}active{% endif %}" href="{% url 'inventory:transaction_list' %}">Stock Transactions</a></li>
+                    {% endif %}
+                    <li class="nav-section">Dispensing</li>
+                    <li><a class="nav-subitem {% if request.resolver_match.url_name == 'new_direct_sale' or request.resolver_match.url_name == 'sale_cart' %}active{% endif %}" href="{% url 'dispensing:new_direct_sale' %}">Direct Sale</a></li>
+                    <li><a class="nav-subitem {% if request.resolver_match.url_name == 'new_external_prescription' or request.resolver_match.url_name == 'external_prescription_cart' %}active{% endif %}" href="{% url 'dispensing:new_external_prescription' %}">External Prescription</a></li>
+                    <li><a class="nav-subitem {% if request.resolver_match.url_name == 'new_consultation' or request.resolver_match.url_name == 'consultation_cart' %}active{% endif %}" href="{% url 'dispensing:new_consultation' %}">Consultation</a></li>
+                    <li><a class="nav-subitem {% if request.resolver_match.namespace == 'dispensing' and request.resolver_match.url_name == 'transaction_list' or request.resolver_match.url_name == 'transaction_detail' %}active{% endif %}" href="{% url 'dispensing:transaction_list' %}">Transactions</a></li>
+                    {% if user.role == 'ADMIN' or user.is_superuser %}
+                    <li class="nav-section">Clinical oversight</li>
+                    <li><a class="{% if request.resolver_match.namespace == 'clinical' and request.resolver_match.url_name == 'governance_dashboard' %}active{% endif %}" href="{% url 'clinical:governance_dashboard' %}">Governance</a></li>
+                    <li><a class="{% if request.resolver_match.namespace == 'clinical' and request.resolver_match.url_name != 'governance_dashboard' %}active{% endif %}" href="{% url 'clinical:rule_report' %}">Reports</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </aside>
+        {% endif %}
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            {% if user.is_authenticated %}
+            <header class="top-header">
+                <div class="top-header-context">
+                    <strong>PharmaGuard</strong>
+                    <span>Intelligent Pharmacy Management &amp; Clinical Decision Support</span>
+                </div>
+                <div class="user-info">
+                    <span class="user-avatar" aria-hidden="true">{{ user.username|first|upper }}</span>
+                    <span class="user-copy"><strong>{{ user.full_name|default:user.username }}</strong><small>{{ user.get_role_display }}</small></span>
+                    <form action="{% url 'logout' %}" method="post" class="logout-form">
+                        {% csrf_token %}
+                        <button type="submit" class="btn-logout">Logout</button>
+                    </form>
+                </div>
+            </header>
+            {% endif %}
+
+            <!-- Notifications/Messages -->
+            <div class="notifications">
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            <!-- Page Content -->
+            <div class="content">
+                {% block content %}
+                {% endblock %}
+            </div>
+        </main>
+    </div>
+</body>
+</html>

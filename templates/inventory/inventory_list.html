@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Inventory Overview | PharmaGuard{% endblock %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>{{ title }}</h2>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <form method="get" class="d-flex gap-3 align-items-end">
+            <div class="flex-grow-1">
+                <label for="search" class="form-label">Search Medicines</label>
+                <input type="text" name="q" id="search" class="form-control" value="{{ query }}" placeholder="Generic or Brand Name">
+            </div>
+            <div class="flex-grow-1">
+                <label for="category" class="form-label">Category</label>
+                <select name="category" id="category" class="form-select">
+                    <option value="">All Categories</option>
+                    {% for cat in categories %}
+                        <option value="{{ cat.id }}" {% if cat.id|stringformat:"s" == category_id %}selected{% endif %}>{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <button type="submit" class="btn btn-primary">Filter</button>
+                <a href="{% url 'inventory:inventory_list' %}" class="btn btn-secondary">Clear</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Table -->
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Medicine</th>
+                <th>Category</th>
+                <th>Total Stock</th>
+                <th>Min Stock</th>
+                <th>Status</th>
+                <th>Active Batches</th>
+                <th>Nearest Expiry</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for medicine in page_obj %}
+            <tr>
+                <td>
+                    <strong>{{ medicine.generic_name }}</strong><br>
+                    <small class="text-muted">{{ medicine.brand_name }} | {{ medicine.strength }} {{ medicine.get_dosage_form_display }}</small>
+                </td>
+                <td>{{ medicine.category.name }}</td>
+                <td><strong>{{ medicine.total_available_stock }}</strong> {{ medicine.get_unit_display }}s</td>
+                <td>{{ medicine.minimum_stock_level }}</td>
+                <td>
+                    {% with status=medicine.stock_status %}
+                        {% if status == 'In Stock' %}
+                            <span class="badge bg-success">In Stock</span>
+                        {% elif status == 'Low Stock' %}
+                            <span class="badge bg-warning text-dark">Low Stock</span>
+                        {% else %}
+                            <span class="badge bg-danger">Out of Stock</span>
+                        {% endif %}
+                    {% endwith %}
+                </td>
+                <td>{{ medicine.active_batches_count }}</td>
+                <td>
+                    {% if medicine.nearest_expiry_date %}
+                        {{ medicine.nearest_expiry_date|date:"Y-m-d" }}
+                    {% else %}
+                        <span class="text-muted">-</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'inventory:batch_list' %}?medicine={{ medicine.id }}" class="btn btn-sm btn-info" title="View Batches">Batches</a>
+                        {% if user.role == 'ADMIN' or user.is_superuser %}
+                            <a href="{% url 'inventory:batch_create' %}?medicine={{ medicine.id }}" class="btn btn-sm btn-success" title="Add Batch">+ Batch</a>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8" class="text-center py-4 text-muted">No medicines found in inventory.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="d-flex justify-content-center mt-4">
+        <ul class="pagination">
+            {% if page_obj.has_previous %}
+                <li><a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if category_id %}&category={{ category_id }}{% endif %}" class="btn btn-sm btn-outline-primary">&laquo; Prev</a></li>
+            {% endif %}
+            
+            <li class="px-3 align-self-center">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</li>
+            
+            {% if page_obj.has_next %}
+                <li><a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if category_id %}&category={{ category_id }}{% endif %}" class="btn btn-sm btn-outline-primary">Next &raquo;</a></li>
+            {% endif %}
+        </ul>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

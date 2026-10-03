@@ -1,0 +1,26 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_title|default:"PharmaGuard Admin" }}{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'admin/css/pharmaguard_admin.css' %}?v=20261002-2">
+{% endblock %}
+
+{% block branding %}
+<div class="pharmaguard-admin-brand">
+    <a href="{% url 'admin:index' %}" aria-label="PharmaGuard Administration home">
+        <span class="pharmaguard-admin-mark" aria-hidden="true">+</span>
+        <span class="pharmaguard-admin-brand-copy">
+            <strong>{{ site_header|default:"PharmaGuard Administration" }}</strong>
+            <small>Intelligent Pharmacy Management &amp; Clinical Decision Support</small>
+        </span>
+    </a>
+</div>
+{% if user.is_anonymous %}
+    {% include "admin/color_theme_toggle.html" %}
+{% endif %}
+{% endblock %}
+
+{% block nav-global %}{% endblock %}

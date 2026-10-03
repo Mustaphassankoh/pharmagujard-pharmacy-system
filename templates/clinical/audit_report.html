@@ -1,0 +1,8 @@
+{% extends 'base.html' %}
+{% block title %}Governance Audit History{% endblock %}
+{% block content %}
+<div class="page-header"><h1>Governance Audit History</h1><div class="page-actions"><a class="btn btn-outline-secondary" href="{% url 'clinical:governance_dashboard' %}">Dashboard</a><a class="btn btn-primary" href="{% url 'clinical:export_audits_csv' %}?{{ request.GET.urlencode }}">Export CSV</a></div></div>
+<form method="get" class="filter-card filter-form"><div class="filter-group"><label for="audit-rule-type">Rule type</label><input id="audit-rule-type" class="form-control" name="rule_type" value="{{ filters.rule_type }}"></div><div class="filter-group"><label for="audit-action">Action</label><select id="audit-action" class="form-select" name="action"><option value="">All</option>{% for value,label in actions %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></div><div class="filter-actions"><button class="btn btn-primary">Filter</button></div></form>
+<div class="table-container"><table class="table"><thead><tr><th>Action</th><th>Rule</th><th>Version</th><th>User</th><th>Time</th><th>Reason</th></tr></thead><tbody>{% for audit in page_obj %}<tr><td><a href="{% url 'clinical:audit_detail' audit.pk %}">{{ audit.action }}</a></td><td>{{ audit.rule_type }} #{{ audit.rule_object_id }}</td><td>{{ audit.rule_version }}</td><td>{{ audit.changed_by.username|default:"System/legacy" }}</td><td>{{ audit.changed_at|date:"Y-m-d H:i" }}</td><td>{{ audit.change_reason|default:"-" }}</td></tr>{% empty %}<tr><td colspan="6" class="empty-state">No audit records.</td></tr>{% endfor %}</tbody></table></div>
+{% include 'clinical/_pagination.html' %}
+{% endblock %}
