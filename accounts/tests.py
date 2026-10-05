@@ -118,3 +118,29 @@ class AdminBrandingTests(TestCase):
 
         for model in (Medicine, MedicineBatch, DrugInteractionRule, AllergyRule, DosageRule, ClinicalRiskModelVersion):
             self.assertIn(model, admin.site._registry)
+
+    def test_editable_admin_forms_are_grouped_and_explain_required_fields(self):
+        expected_sections = {
+            'admin:clinical_druginteractionrule_add': ('Rule Definition', 'Clinical Information', 'Source Information', 'Governance'),
+            'admin:clinical_allergyrule_add': ('Rule Definition', 'Clinical Information', 'Source Information', 'Governance'),
+            'admin:clinical_dosagerule_add': ('Rule Definition', 'Dose Limits', 'Patient Context', 'Governance'),
+            'admin:clinical_allergen_add': ('Allergen Details',),
+            'admin:clinical_clinicalriskmodelversion_add': ('Model Identity', 'Training Data', 'Technical Evidence'),
+            'admin:medicines_medicine_add': ('Medicine Identity', 'Formulation', 'Inventory Settings'),
+            'admin:inventory_medicinebatch_add': ('Batch Identity', 'Stock', 'Pricing', 'Dates'),
+        }
+
+        for url_name, sections in expected_sections.items():
+            with self.subTest(url_name=url_name):
+                response = self.client.get(reverse(url_name))
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, 'Required fields')
+                for section in sections:
+                    self.assertContains(response, section)
+
+    def test_admin_rule_forms_use_compact_textareas_and_help_text(self):
+        response = self.client.get(reverse('admin:clinical_druginteractionrule_add'))
+
+        self.assertContains(response, 'compact-textarea')
+        self.assertContains(response, 'Enter the guideline, document, or reference supporting this rule.')
+        self.assertContains(response, 'The date and time when this rule becomes usable in clinical checks.')

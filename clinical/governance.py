@@ -91,7 +91,7 @@ def approve_rule(rule, user, reason=''):
     if rule.status != RuleLifecycleStatus.UNDER_REVIEW:
         raise ValidationError('Only a rule under review can be approved.')
     if rule.created_by_id and rule.created_by_id == user.pk and not user.is_superuser:
-        raise ValidationError('The rule creator cannot approve their own rule.')
+        raise ValidationError('You cannot approve a rule that you created yourself.')
     before = rule_snapshot(rule)
     now = timezone.now()
     rule.reviewed_by = user
@@ -111,7 +111,7 @@ def activate_rule(rule, user, reason=''):
     require_governance_admin(user)
     rule = _locked(rule)
     if rule.status != RuleLifecycleStatus.APPROVED:
-        raise ValidationError('Only an approved rule can be activated.')
+        raise ValidationError('This rule cannot move directly from Draft to Active. It must be reviewed and approved first.')
     if not rule.source_reference.strip():
         raise ValidationError('A verified source reference is required before activation.')
     before = rule_snapshot(rule)

@@ -242,6 +242,12 @@ button, a { -webkit-tap-highlight-color: transparent; }
     transition: border-color .15s ease, box-shadow .15s ease;
 }
 textarea.form-control, .form-group textarea { min-height: 104px; resize: vertical; }
+.form-group textarea, textarea.form-control { max-width: 900px; }
+.required-note { margin: 0 0 var(--space-4); color: var(--color-text-muted); font-size: .82rem; }
+.required-indicator { color: var(--color-danger); font-weight: 800; }
+.form-error-summary { margin-bottom: var(--space-4); }
+.form-control[aria-invalid="true"], .form-select[aria-invalid="true"] { border-color: var(--color-danger); }
+.form-row-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
 .form-control:focus, .form-select:focus, .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
     outline: none;
     border-color: var(--color-primary);
@@ -408,6 +414,7 @@ textarea.form-control, .form-group textarea { min-height: 104px; resize: vertica
     .content, .notifications { padding-inline: var(--space-4); }
     .content { padding-top: var(--space-4); }
     .form-grid { grid-template-columns: 1fr; }
+    .form-row-2 { grid-template-columns: 1fr; }
     .dispensing-layout { grid-template-columns: 1fr; }
     .cart-entry-row { align-items: stretch; flex-direction: column; }
     .cart-entry-row > div { width: 100% !important; }

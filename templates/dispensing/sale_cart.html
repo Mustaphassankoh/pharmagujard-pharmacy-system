@@ -34,20 +34,21 @@
 
             <form method="post" action="{% url 'dispensing:add_to_cart' txn.pk %}" id="add-to-cart-form">
                 {% csrf_token %}
+                <p class="required-note"><span class="required-indicator" aria-hidden="true">*</span> Required fields</p>
                 <input type="hidden" name="medicine_id" id="selected-medicine-id">
                 <div class="cart-entry-row">
                     <div style="flex:1;">
                         <label class="form-label">
-                            Selected Medicine
+                            Selected Medicine <span class="required-indicator" aria-hidden="true">*</span>
                         </label>
                         <input type="text" id="selected-medicine-display" class="form-control" readonly placeholder="None selected">
                     </div>
                     <div style="width:120px;">
                         <label for="qty-input" class="form-label">
-                            Quantity
+                            Quantity <span class="required-indicator" aria-hidden="true">*</span>
                         </label>
                         <input type="number" name="quantity" id="qty-input" class="form-control"
-                               min="1" value="1">
+                               min="1" value="1" required>
                     </div>
                     <button type="submit" class="btn btn-primary" id="add-btn" disabled>
                         Add to Cart

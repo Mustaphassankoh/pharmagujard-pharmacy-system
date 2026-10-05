@@ -22,7 +22,7 @@ class MedicineCategoryForm(forms.ModelForm):
             }),
         }
         labels = {
-            'name': 'Category Name *',
+            'name': 'Category Name',
             'description': 'Description',
             'is_active': 'Is Active Catalog Category',
         }
@@ -93,14 +93,14 @@ class MedicineForm(forms.ModelForm):
             }),
         }
         labels = {
-            'category': 'Therapeutic Category *',
-            'generic_name': 'Generic Name *',
+            'category': 'Therapeutic Category',
+            'generic_name': 'Generic Name',
             'brand_name': 'Brand Name',
-            'dosage_form': 'Dosage Form *',
-            'strength': 'Strength *',
-            'unit': 'Dispensing Unit *',
+            'dosage_form': 'Dosage Form',
+            'strength': 'Strength',
+            'unit': 'Dispensing Unit',
             'description': 'Description / Notes',
-            'minimum_stock_level': 'Minimum Stock Level (Alert Threshold) *',
+            'minimum_stock_level': 'Minimum Stock Level (Alert Threshold)',
             'is_active': 'Active in Formulary',
         }
 

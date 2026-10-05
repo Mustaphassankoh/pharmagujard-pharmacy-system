@@ -8,6 +8,9 @@ class MedicineCategoryAdmin(admin.ModelAdmin):
     list_filter = ('is_active', 'created_at')
     search_fields = ('name', 'description')
     ordering = ('name',)
+    fieldsets = (
+        ('Category Details', {'fields': ('name', 'description', 'is_active')}),
+    )
 
 
 @admin.register(Medicine)
@@ -37,3 +40,9 @@ class MedicineAdmin(admin.ModelAdmin):
     )
     ordering = ('generic_name', 'brand_name')
     autocomplete_fields = ('category',)
+    fieldsets = (
+        ('Medicine Identity', {'fields': (('generic_name', 'brand_name'), 'category')}),
+        ('Formulation', {'fields': (('dosage_form', 'strength'), 'unit')}),
+        ('Inventory Settings', {'fields': ('minimum_stock_level', 'is_active')}),
+        ('Notes', {'fields': ('description',)}),
+    )

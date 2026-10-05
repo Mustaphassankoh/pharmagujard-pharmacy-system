@@ -13,6 +13,24 @@ from .governance import (
     activate_rule, approve_rule, record_rule_audit, retire_rule,
     submit_rule_for_review,
 )
+from .forms import (
+    AllergenAdminForm, AllergyRuleAdminForm, ClinicalRiskModelVersionAdminForm,
+    DosageRuleAdminForm, DrugInteractionRuleAdminForm,
+)
+
+
+RULE_GOVERNANCE_FIELDS = (
+    ('version', 'status'), ('effective_from', 'effective_to'),
+    ('supersedes', 'next_review_date'), 'change_reason', 'is_active',
+)
+RULE_AUDIT_FIELDS = (
+    ('created_by', 'reviewed_by'), ('approved_by', 'retired_by'),
+    ('reviewed_at', 'approved_at'), 'retired_at', ('created_at', 'updated_at'),
+)
+RULE_SOURCE_FIELDS = (
+    'source_reference', ('source_title', 'source_version'),
+    ('source_date', 'source_url'),
+)
 
 
 class ClinicalKnowledgeAdmin(admin.ModelAdmin):
@@ -62,9 +80,12 @@ class ClinicalKnowledgeAdmin(admin.ModelAdmin):
 
     def get_readonly_fields(self, request, obj=None):
         governance = ('version', 'status', 'created_by', 'reviewed_by', 'reviewed_at', 'approved_by', 'approved_at', 'retired_by', 'retired_at', 'supersedes')
+        model_fields = {field.name for field in obj._meta.fields} if obj else {field.name for field in self.model._meta.fields}
+        governance = tuple(field for field in governance if field in model_fields)
+        timestamps = tuple(field for field in ('created_at', 'updated_at') if field in model_fields)
         if obj and obj.status == RuleLifecycleStatus.ACTIVE:
             return tuple(field.name for field in obj._meta.fields if field.name not in ('effective_to', 'next_review_date', 'change_reason'))
-        return governance
+        return governance + timestamps
 
     def _run_action(self, request, queryset, service, reason):
         successes = 0
@@ -96,30 +117,65 @@ class ClinicalKnowledgeAdmin(admin.ModelAdmin):
 
 @admin.register(DrugInteractionRule)
 class DrugInteractionRuleAdmin(ClinicalKnowledgeAdmin):
+    form = DrugInteractionRuleAdminForm
     list_display = ('medicine_a', 'medicine_b', 'version', 'status_badge', 'severity_badge', 'effective_from', 'effective_to', 'created_by', 'approved_by', 'is_currently_usable')
     list_filter = ('status', 'version', 'severity', 'is_active')
     search_fields = ('medicine_a__generic_name', 'medicine_b__generic_name', 'description', 'source_reference')
+    fieldsets = (
+        ('Rule Definition', {'fields': (('medicine_a', 'medicine_b'), 'severity')}),
+        ('Clinical Information', {'fields': ('description', 'explanation', 'recommendation')}),
+        ('Source Information', {'fields': RULE_SOURCE_FIELDS}),
+        ('Governance', {'fields': RULE_GOVERNANCE_FIELDS}),
+        ('Audit Information', {'fields': RULE_AUDIT_FIELDS, 'classes': ('collapse',)}),
+    )
 
 
 @admin.register(Allergen)
 class AllergenAdmin(ClinicalKnowledgeAdmin):
+    form = AllergenAdminForm
     list_display = ('name', 'is_active', 'updated_at')
     list_filter = ('is_active',)
     search_fields = ('name', 'description')
+    fieldsets = (
+        ('Allergen Details', {'fields': ('name', 'description', 'is_active')}),
+        ('Audit Information', {'fields': (('created_at', 'updated_at'),), 'classes': ('collapse',)}),
+    )
 
 
 @admin.register(AllergyRule)
 class AllergyRuleAdmin(ClinicalKnowledgeAdmin):
+    form = AllergyRuleAdminForm
     list_display = ('allergen', 'medicine', 'version', 'status_badge', 'severity_badge', 'effective_from', 'effective_to', 'created_by', 'approved_by', 'is_currently_usable')
     list_filter = ('status', 'version', 'severity', 'is_active', 'allergen')
     search_fields = ('allergen__name', 'medicine__generic_name', 'description', 'source_reference')
+    fieldsets = (
+        ('Rule Definition', {'fields': (('medicine', 'allergen'), 'severity')}),
+        ('Clinical Information', {'fields': ('description', 'explanation', 'recommendation')}),
+        ('Source Information', {'fields': RULE_SOURCE_FIELDS}),
+        ('Governance', {'fields': RULE_GOVERNANCE_FIELDS}),
+        ('Audit Information', {'fields': RULE_AUDIT_FIELDS, 'classes': ('collapse',)}),
+    )
 
 
 @admin.register(DosageRule)
 class DosageRuleAdmin(ClinicalKnowledgeAdmin):
+    form = DosageRuleAdminForm
     list_display = ('medicine', 'dose_unit', 'version', 'status_badge', 'severity_badge', 'effective_from', 'effective_to', 'created_by', 'approved_by', 'is_currently_usable')
     list_filter = ('status', 'version', 'dose_unit', 'severity', 'is_active')
     search_fields = ('medicine__generic_name', 'medicine__brand_name', 'description', 'source_reference')
+    fieldsets = (
+        ('Rule Definition', {'fields': (('medicine', 'dose_unit'), 'severity')}),
+        ('Dose Limits', {'fields': (
+            ('min_single_dose', 'max_single_dose'),
+            ('min_frequency_per_day', 'max_frequency_per_day'),
+            ('max_daily_dose', 'max_duration_days'),
+        )}),
+        ('Patient Context', {'fields': (('min_age', 'max_age'), ('min_weight', 'max_weight'))}),
+        ('Clinical Information', {'fields': ('description', 'explanation', 'recommendation')}),
+        ('Source Information', {'fields': RULE_SOURCE_FIELDS}),
+        ('Governance', {'fields': RULE_GOVERNANCE_FIELDS}),
+        ('Audit Information', {'fields': RULE_AUDIT_FIELDS, 'classes': ('collapse',)}),
+    )
 
 
 @admin.register(ClinicalReview)
@@ -200,9 +256,19 @@ class ClinicalRuleAuditAdmin(admin.ModelAdmin):
 
 @admin.register(ClinicalRiskModelVersion)
 class ClinicalRiskModelVersionAdmin(ClinicalKnowledgeAdmin):
+    form = ClinicalRiskModelVersionAdminForm
     list_display = ('version', 'model_type', 'dataset_name', 'trained_at', 'is_active')
     list_filter = ('is_active', 'model_type')
     readonly_fields = ('trained_at', 'dataset_name', 'dataset_version', 'feature_schema', 'metrics', 'created_at')
+
+    def get_readonly_fields(self, request, obj=None):
+        return self.readonly_fields
+    fieldsets = (
+        ('Model Identity', {'fields': (('version', 'model_type'), 'artifact_path', 'is_active')}),
+        ('Training Data', {'fields': (('dataset_name', 'dataset_version'), 'trained_at')}),
+        ('Technical Evidence', {'fields': ('feature_schema', 'metrics')}),
+        ('Notes and Audit', {'fields': ('notes', 'created_at')}),
+    )
 
 
 @admin.register(ClinicalRiskAssessment)

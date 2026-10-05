@@ -16,9 +16,10 @@
 <div class="form-card">
     <form method="post" novalidate>
         {% csrf_token %}
+        <p class="required-note"><span class="required-indicator" aria-hidden="true">*</span> Required fields</p>
 
         {% if form.non_field_errors %}
-        <div class="alert alert-danger">
+        <div class="alert alert-danger form-error-summary" role="alert">Please review the highlighted fields below.
             {% for error in form.non_field_errors %}
                 <div>{{ error }}</div>
             {% endfor %}
@@ -26,7 +27,7 @@
         {% endif %}
 
         <div class="form-group">
-            <label for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
+            <label for="{{ form.name.id_for_label }}">{{ form.name.label }}{% if form.name.field.required %} <span class="required-indicator" aria-hidden="true">*</span>{% endif %}</label>
             {{ form.name }}
             {% if form.name.errors %}
                 <ul class="errorlist">

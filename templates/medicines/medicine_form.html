@@ -16,9 +16,10 @@
 <div class="form-card">
     <form method="post" novalidate>
         {% csrf_token %}
+        <p class="required-note"><span class="required-indicator" aria-hidden="true">*</span> Required fields</p>
 
         {% if form.non_field_errors %}
-        <div class="alert alert-danger">
+        <div class="alert alert-danger form-error-summary" role="alert">Please review the highlighted fields below.
             {% for error in form.non_field_errors %}
                 <div>{{ error }}</div>
             {% endfor %}
@@ -28,7 +29,7 @@
         <div class="form-grid">
             <!-- Generic Name -->
             <div class="form-group">
-                <label for="{{ form.generic_name.id_for_label }}">{{ form.generic_name.label }}</label>
+                <label for="{{ form.generic_name.id_for_label }}">{{ form.generic_name.label }}{% if form.generic_name.field.required %} <span class="required-indicator" aria-hidden="true">*</span>{% endif %}</label>
                 {{ form.generic_name }}
                 {% if form.generic_name.errors %}
                     <ul class="errorlist">
@@ -42,7 +43,7 @@
 
             <!-- Brand Name -->
             <div class="form-group">
-                <label for="{{ form.brand_name.id_for_label }}">{{ form.brand_name.label }}</label>
+                <label for="{{ form.brand_name.id_for_label }}">{{ form.brand_name.label }}{% if form.brand_name.field.required %} <span class="required-indicator" aria-hidden="true">*</span>{% endif %}</label>
                 {{ form.brand_name }}
                 {% if form.brand_name.errors %}
                     <ul class="errorlist">
@@ -56,7 +57,7 @@
 
             <!-- Category -->
             <div class="form-group">
-                <label for="{{ form.category.id_for_label }}">{{ form.category.label }}</label>
+                <label for="{{ form.category.id_for_label }}">{{ form.category.label }}{% if form.category.field.required %} <span class="required-indicator" aria-hidden="true">*</span>{% endif %}</label>
                 {{ form.category }}
                 {% if form.category.errors %}
                     <ul class="errorlist">
@@ -70,7 +71,7 @@
 
             <!-- Dosage Form -->
             <div class="form-group">
-                <label for="{{ form.dosage_form.id_for_label }}">{{ form.dosage_form.label }}</label>
+                <label for="{{ form.dosage_form.id_for_label }}">{{ form.dosage_form.label }}{% if form.dosage_form.field.required %} <span class="required-indicator" aria-hidden="true">*</span>{% endif %}</label>
                 {{ form.dosage_form }}
                 {% if form.dosage_form.errors %}
                     <ul class="errorlist">
@@ -84,7 +85,7 @@
 
             <!-- Strength -->
             <div class="form-group">
-                <label for="{{ form.strength.id_for_label }}">{{ form.strength.label }}</label>
+                <label for="{{ form.strength.id_for_label }}">{{ form.strength.label }}{% if form.strength.field.required %} <span class="required-indicator" aria-hidden="true">*</span>{% endif %}</label>
                 {{ form.strength }}
                 {% if form.strength.errors %}
                     <ul class="errorlist">
@@ -98,7 +99,7 @@
 
             <!-- Unit -->
             <div class="form-group">
-                <label for="{{ form.unit.id_for_label }}">{{ form.unit.label }}</label>
+                <label for="{{ form.unit.id_for_label }}">{{ form.unit.label }}{% if form.unit.field.required %} <span class="required-indicator" aria-hidden="true">*</span>{% endif %}</label>
                 {{ form.unit }}
                 {% if form.unit.errors %}
                     <ul class="errorlist">
@@ -112,7 +113,7 @@
 
             <!-- Minimum Stock Level -->
             <div class="form-group">
-                <label for="{{ form.minimum_stock_level.id_for_label }}">{{ form.minimum_stock_level.label }}</label>
+                <label for="{{ form.minimum_stock_level.id_for_label }}">{{ form.minimum_stock_level.label }}{% if form.minimum_stock_level.field.required %} <span class="required-indicator" aria-hidden="true">*</span>{% endif %}</label>
                 {{ form.minimum_stock_level }}
                 {% if form.minimum_stock_level.errors %}
                     <ul class="errorlist">

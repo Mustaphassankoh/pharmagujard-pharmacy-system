@@ -8,6 +8,13 @@ class MedicineBatchAdmin(admin.ModelAdmin):
     list_filter = ('is_active', 'date_received', 'expiry_date', 'medicine__category')
     search_fields = ('batch_number', 'medicine__generic_name', 'medicine__brand_name')
     readonly_fields = ('quantity_remaining', 'created_at', 'updated_at')
+    fieldsets = (
+        ('Batch Identity', {'fields': (('medicine', 'batch_number'), 'is_active')}),
+        ('Stock', {'fields': (('quantity_received', 'quantity_remaining'),)}),
+        ('Pricing', {'fields': (('cost_price', 'selling_price'),)}),
+        ('Dates', {'fields': (('date_received', 'expiry_date'),)}),
+        ('Audit Information', {'fields': (('created_at', 'updated_at'),), 'classes': ('collapse',)}),
+    )
 
     @admin.display(description='Cost Price (SLE)', ordering='cost_price')
     def cost_price_display(self, obj):

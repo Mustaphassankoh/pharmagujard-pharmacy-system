@@ -6,10 +6,10 @@ class CustomUserAdmin(UserAdmin):
     model = User
     list_display = ['username', 'email', 'full_name', 'role', 'is_active']
     fieldsets = UserAdmin.fieldsets + (
-        ('Custom Fields', {'fields': ('full_name', 'role')}),
+        ('PharmaGuard Profile', {'fields': (('full_name', 'role'),)}),
     )
     add_fieldsets = UserAdmin.add_fieldsets + (
-        ('Custom Fields', {'fields': ('full_name', 'role')}),
+        ('PharmaGuard Profile', {'fields': (('full_name', 'role'),)}),
     )
 
 admin.site.register(User, CustomUserAdmin)

@@ -34,10 +34,10 @@ class PrescriptionItemForm(AddToCartForm):
         required=False,
         label="Instructions"
     )
-    dose_amount = forms.DecimalField(max_digits=12, decimal_places=4, min_value=0.0001, required=False, label='Structured dose amount')
-    dose_unit = forms.ChoiceField(choices=[('', '---------'), *DoseUnitChoices.choices], required=False, label='Structured dose unit')
-    frequency_per_day = forms.DecimalField(max_digits=8, decimal_places=4, min_value=0.0001, required=False, label='Frequency per day')
-    duration_days = forms.IntegerField(min_value=1, required=False, label='Duration in days')
+    dose_amount = forms.DecimalField(max_digits=12, decimal_places=4, min_value=0.0001, required=False, label='Dose Amount')
+    dose_unit = forms.ChoiceField(choices=[('', '---------'), *DoseUnitChoices.choices], required=False, label='Dose Unit')
+    frequency_per_day = forms.DecimalField(max_digits=8, decimal_places=4, min_value=0.0001, required=False, label='Frequency Per Day')
+    duration_days = forms.IntegerField(min_value=1, required=False, label='Duration Days')
 
     def clean(self):
         cleaned = super().clean()
@@ -59,6 +59,14 @@ class ExternalPrescriptionForm(forms.ModelForm):
             'prescription_date': forms.DateInput(attrs={'type': 'date'}),
             'notes': forms.Textarea(attrs={'rows': 3}),
         }
+        labels = {
+            'prescription_source': 'Prescription Source',
+            'prescriber_name': 'Prescriber Name',
+            'facility_name': 'Facility Name',
+            'prescription_date': 'Prescription Date',
+            'reference_number': 'Reference Number',
+            'notes': 'Notes',
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -76,8 +84,8 @@ class ConsultationForm(forms.ModelForm):
             'pregnancy_status', 'notes'
         ]
         labels = {
-            'structured_allergies': 'Structured allergies',
-            'known_allergies': 'Additional allergy notes',
+            'structured_allergies': 'Structured Allergies',
+            'known_allergies': 'Additional Allergy Notes',
         }
         widgets = {
             'symptoms': forms.Textarea(attrs={'rows': 3}),

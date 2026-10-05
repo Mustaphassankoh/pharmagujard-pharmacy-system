@@ -197,7 +197,26 @@ select, textarea, .vTextField {
     border: 1px solid #CBD5E1;
     border-radius: 6px;
 }
-textarea { min-height: 100px; }
+textarea { min-height: 84px; max-width: 900px; }
+textarea.compact-textarea { min-height: 0; }
+.required label::after, label.required::after {
+    content: " *";
+    color: #B91C1C;
+    font-weight: 800;
+}
+.required-fields-note { margin: 0 0 14px; color: #475569; font-size: .82rem; }
+.required-fields-note span { color: #B91C1C; font-weight: 800; }
+.pharmaguard-error-summary {
+    margin-bottom: 14px; padding: 10px 12px; color: #991B1B;
+    background: #FEF2F2; border: 1px solid #FECACA; border-radius: 6px;
+    font-weight: 700;
+}
+.change-form .errornote { display: none; }
+.form-row.field-effective_from.field-effective_to > div,
+.form-row.field-min_single_dose.field-max_single_dose > div,
+.form-row.field-min_age.field-max_age > div,
+.form-row.field-min_weight.field-max_weight > div { display: flex; flex-wrap: wrap; gap: 16px; }
+.form-row .fieldBox { min-width: min(100%, 260px); flex: 1 1 260px; }
 input:focus, select:focus, textarea:focus {
     border-color: #0F766E;
     outline: none;

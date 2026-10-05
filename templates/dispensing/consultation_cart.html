@@ -24,10 +24,12 @@
             <h3 style="margin-bottom:14px; font-size:1rem; font-weight:600;">Consultation Details</h3>
             <form method="post" action="{% url 'dispensing:consultation_save_metadata' txn.pk %}">
                 {% csrf_token %}
+                <p class="required-note"><span class="required-indicator" aria-hidden="true">*</span> Required fields</p>
+                {% if meta_form.non_field_errors %}<div class="alert alert-danger form-error-summary" role="alert">Please review the highlighted fields below. {{ meta_form.non_field_errors }}</div>{% endif %}
                 <div class="row">
                     {% for field in meta_form %}
                     <div class="col-md-6 mb-3">
-                        <label for="{{ field.id_for_label }}" style="font-size:0.82rem; font-weight:600; color:#495057; text-transform:uppercase; letter-spacing:0.5px; display:block; margin-bottom:4px;">{{ field.label }} {% if field.field.required %}*{% endif %}</label>
+                        <label for="{{ field.id_for_label }}" style="font-size:0.82rem; font-weight:600; color:#495057; text-transform:uppercase; letter-spacing:0.5px; display:block; margin-bottom:4px;">{{ field.label }}{% if field.field.required %} <span class="required-indicator" aria-hidden="true">*</span>{% endif %}</label>
                         {{ field }}
                         {% if field.name == 'structured_allergies' %}
                             <small style="display:block; color:#6c757d; margin-top:5px;">Used by automated allergy checking.</small>
@@ -59,16 +61,17 @@
 
             <form method="post" action="{% url 'dispensing:add_to_cart' txn.pk %}" id="add-to-cart-form">
                 {% csrf_token %}
+                <p class="required-note"><span class="required-indicator" aria-hidden="true">*</span> Required fields</p>
                 <input type="hidden" name="medicine_id" id="selected-medicine-id">
                 
                 <div class="row mb-3">
                     <div class="col-md-9">
-                        <label style="font-size:0.82rem; font-weight:600; color:#495057; text-transform:uppercase; letter-spacing:0.5px; display:block; margin-bottom:4px;">Selected Medicine</label>
+                        <label style="font-size:0.82rem; font-weight:600; color:#495057; text-transform:uppercase; letter-spacing:0.5px; display:block; margin-bottom:4px;">Selected Medicine <span class="required-indicator" aria-hidden="true">*</span></label>
                         <input type="text" id="selected-medicine-display" class="form-control"
                                readonly placeholder="None selected" style="background:#f8f9fa;">
                     </div>
                     <div class="col-md-3">
-                        <label for="id_quantity" style="font-size:0.82rem; font-weight:600; color:#495057; text-transform:uppercase; letter-spacing:0.5px; display:block; margin-bottom:4px;">Quantity</label>
+                        <label for="id_quantity" style="font-size:0.82rem; font-weight:600; color:#495057; text-transform:uppercase; letter-spacing:0.5px; display:block; margin-bottom:4px;">Quantity <span class="required-indicator" aria-hidden="true">*</span></label>
                         <input type="number" name="quantity" id="id_quantity" class="form-control" min="1" value="1" required>
                     </div>
                 </div>

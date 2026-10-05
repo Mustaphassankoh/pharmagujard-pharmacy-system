@@ -89,7 +89,7 @@ class GovernedRuleMixin(models.Model):
         super().clean()
         errors = {}
         if self.effective_from and self.effective_to and self.effective_from >= self.effective_to:
-            errors['effective_to'] = 'Effective end must be later than effective start.'
+            errors['effective_to'] = "'Effective from' must be earlier than 'Effective to'."
         if self.status in (RuleLifecycleStatus.APPROVED, RuleLifecycleStatus.ACTIVE) and not self.approved_by_id:
             errors['approved_by'] = 'Approved and active rules require an approver.'
         if self.status == RuleLifecycleStatus.ACTIVE and not self.approved_at:
@@ -98,12 +98,12 @@ class GovernedRuleMixin(models.Model):
             errors['retired_at'] = 'Retired rules require a retirement timestamp.'
         if getattr(self, 'supersedes_id', None):
             if self.pk and self.supersedes_id == self.pk:
-                errors['supersedes'] = 'A rule cannot supersede itself.'
+                errors['supersedes'] = 'A rule cannot supersede itself. Select a different previous version.'
             ancestor = self.supersedes
             seen = {self.pk} if self.pk else set()
             while ancestor:
                 if ancestor.pk in seen:
-                    errors['supersedes'] = 'Circular rule supersession is not allowed.'
+                    errors['supersedes'] = 'This selection would create a circular version history. Select an earlier unrelated version.'
                     break
                 seen.add(ancestor.pk)
                 ancestor = ancestor.supersedes
@@ -167,7 +167,7 @@ class DosageRule(GovernedRuleMixin):
         ):
             low_value, high_value = getattr(self, low), getattr(self, high)
             if low_value is not None and high_value is not None and low_value > high_value:
-                errors[low] = f'Minimum {label} cannot exceed maximum {label}.'
+                errors[low] = f'Minimum {label} cannot be greater than maximum {label}.'
         for field in ('min_single_dose', 'max_single_dose', 'max_daily_dose',
                       'min_frequency_per_day', 'max_frequency_per_day',
                       'min_weight', 'max_weight'):
@@ -177,7 +177,7 @@ class DosageRule(GovernedRuleMixin):
         if self.max_duration_days is not None and self.max_duration_days <= 0:
             errors['max_duration_days'] = 'Maximum duration must be positive.'
         if not (self.source_reference or '').strip():
-            errors['source_reference'] = 'A verified source reference is required.'
+            errors['source_reference'] = 'A source reference is required before this rule can be activated.'
         if self.medicine_id and self.dose_unit:
             duplicate_fields = (
                 'medicine_id', 'dose_unit', 'min_single_dose', 'max_single_dose',
@@ -188,7 +188,7 @@ class DosageRule(GovernedRuleMixin):
             if self.pk:
                 duplicate = duplicate.exclude(pk=self.pk)
             if duplicate.exists():
-                errors['medicine'] = 'An identical dosage rule already exists for this medicine.'
+                errors['medicine'] = 'A dosage rule already exists with the same medicine, unit, and version.'
         if errors:
             raise ValidationError(errors)
 
@@ -230,13 +230,18 @@ class DrugInteractionRule(GovernedRuleMixin):
         super().clean()
         if self.medicine_a_id and self.medicine_b_id:
             if self.medicine_a_id == self.medicine_b_id:
-                raise ValidationError('A medicine cannot interact with itself.')
-            a_id, b_id = sorted((self.medicine_a_id, self.medicine_b_id))
-            duplicate = DrugInteractionRule.objects.filter(medicine_a_id=a_id, medicine_b_id=b_id, version=self.version)
+                raise ValidationError({'medicine_b': 'Medicine A and Medicine B cannot be the same medicine.'})
+            if self.medicine_a_id > self.medicine_b_id:
+                self.medicine_a_id, self.medicine_b_id = self.medicine_b_id, self.medicine_a_id
+            duplicate = DrugInteractionRule.objects.filter(
+                medicine_a_id=self.medicine_a_id,
+                medicine_b_id=self.medicine_b_id,
+                version=self.version,
+            )
             if self.pk:
                 duplicate = duplicate.exclude(pk=self.pk)
             if duplicate.exists():
-                raise ValidationError('A rule for this medicine pair already exists.')
+                raise ValidationError('A drug interaction rule already exists for these two medicines in this version.')
 
     def save(self, *args, **kwargs):
         if self.medicine_a_id and self.medicine_b_id and self.medicine_a_id > self.medicine_b_id:
@@ -284,6 +289,21 @@ class AllergyRule(GovernedRuleMixin):
         constraints = [
             models.UniqueConstraint(fields=['medicine', 'allergen', 'version'], name='unique_versioned_medicine_allergen_rule'),
         ]
+
+    def clean(self):
+        super().clean()
+        if self.medicine_id and self.allergen_id:
+            duplicate = AllergyRule.objects.filter(
+                medicine_id=self.medicine_id,
+                allergen_id=self.allergen_id,
+                version=self.version,
+            )
+            if self.pk:
+                duplicate = duplicate.exclude(pk=self.pk)
+            if duplicate.exists():
+                raise ValidationError(
+                    'An allergy rule already exists for this medicine and allergen in this version.'
+                )
 
     def save(self, *args, **kwargs):
         self.validate_active_immutability((
