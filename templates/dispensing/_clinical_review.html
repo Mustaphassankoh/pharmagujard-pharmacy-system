@@ -4,6 +4,8 @@
         <p>Deterministic checks remain authoritative. Review every warning before confirmation.</p>
     </div>
 
+    {% comment %}Legacy panel retained temporarily for template-history clarity; replaced by the shared panel below.{% endcomment %}
+    {% comment %}
     <section class="ai-panel" aria-labelledby="ai-priority-title">
         <div class="ai-panel-header">
             <h4 id="ai-priority-title">AI Review Priority:</h4>
@@ -12,49 +14,79 @@
             </span>
         </div>
         {% if risk_assessment %}
-        <div class="ai-panel-grid">
-            <div><span class="metadata-label">Final Review Priority</span><p class="ai-value">{{ risk_assessment.final_priority }}</p></div>
-            <div><span class="metadata-label">Raw Model Output</span><p class="ai-value">{{ risk_assessment.predicted_priority }}</p></div>
-            <div><span class="metadata-label">Confidence</span><p class="ai-value">{{ risk_assessment.prediction_probability }}</p></div>
-            <div><span class="metadata-label">Model Version</span><p class="ai-value">{{ risk_assessment.model_version.version }}</p></div>
+        <div class="ai-summary-grid">
+            <div><span class="metadata-label">Model Status</span><p class="ai-value ai-status-available">Available</p></div>
+            <div><span class="metadata-label">Confidence Score</span><p class="ai-value">{{ risk_assessment.prediction_probability|floatformat:2 }}</p></div>
         </div>
-        <p><strong>Explanation:</strong> {{ risk_assessment.explanation }}</p>
-        <details>
-            <summary>Decision Path &amp; Feature Snapshot</summary>
+        <p class="ai-plain-explanation">
+            {% if risk_assessment.final_priority == 'CRITICAL' %}The current review contains signals that need immediate pharmacist attention.
+            {% elif risk_assessment.final_priority == 'HIGH' %}The current review contains signals that should receive prompt pharmacist attention.
+            {% elif risk_assessment.final_priority == 'MODERATE' %}The current review contains signals that merit additional pharmacist review.
+            {% else %}The model assigned a lower review priority, but the pharmacist must still review all deterministic checks.
+            {% endif %}
+        </p>
+        <details class="ai-technical-details">
+            <summary>Show Technical AI Details</summary>
+            <div class="ai-panel-grid">
+                <div><span class="metadata-label">Raw Model Output</span><p class="ai-value">{{ risk_assessment.predicted_priority }}</p></div>
+                <div><span class="metadata-label">Final Review Priority</span><p class="ai-value">{{ risk_assessment.final_priority }}</p></div>
+                <div><span class="metadata-label">Model Version</span><p class="ai-value">{{ risk_assessment.model_version.version }}</p></div>
+                <div><span class="metadata-label">Confidence Score</span><p class="ai-value">{{ risk_assessment.prediction_probability }}</p></div>
+            </div>
+            <p class="metadata-label">Internal Structured Explanation</p>
+            <p>{{ risk_assessment.explanation }}</p>
             <p class="metadata-label">Decision Path</p><pre>{{ risk_assessment.decision_path }}</pre>
             <p class="metadata-label">Feature Snapshot</p><pre>{{ risk_assessment.feature_snapshot }}</pre>
         </details>
         {% else %}
-        <p class="clinical-meta">No model assessment is available for the current review.</p>
+        <div class="ai-summary-grid">
+            <div><span class="metadata-label">Model Status</span><p class="ai-value">Not available</p></div>
+        </div>
+        <p class="clinical-meta">No model assessment is available for the current review. Continue using the deterministic clinical checks below.</p>
         {% endif %}
         <p class="ai-disclaimer"><strong>DEVELOPMENT / SYNTHETIC DATA — NOT CLINICALLY VALIDATED</strong><br>This model prioritizes pharmacist review. It does not diagnose, prescribe, determine clinical safety, or override deterministic clinical rules.</p>
     </section>
+    {% endcomment %}
 
     <div class="clinical-check-grid">
         <section class="clinical-check-card">
-            <p><strong>Drug Interaction Check</strong></p>
+            <div class="clinical-check-heading"><strong>Drug Interaction Check</strong>
             {% if interaction_result %}
                 <span class="badge {% if interaction_result.status == 'PASSED' %}badge-success{% elif interaction_result.status == 'WARNING' %}badge-warning{% else %}badge-secondary{% endif %}">{{ interaction_result.status }}</span>
-                <p class="clinical-meta">{{ interaction_result.details.checked_pairs|default:0 }} medicine pair{{ interaction_result.details.checked_pairs|default:0|pluralize }} checked{% if interaction_result.checked_at %} at {{ interaction_result.checked_at|date:"F j, Y - H:i" }}{% endif %}. {% if interaction_result.details.reason %}{{ interaction_result.details.reason }}{% endif %}</p>
             {% else %}<span class="badge badge-secondary">Not yet evaluated</span>{% endif %}
+            </div>
+            {% if interaction_result %}
+                <p class="clinical-meta">{{ interaction_result.details.checked_pairs|default:0 }} medicine pair{{ interaction_result.details.checked_pairs|default:0|pluralize }} checked{% if interaction_result.checked_at %} at {{ interaction_result.checked_at|date:"F j, Y - H:i" }}{% endif %}. {% if interaction_result.details.reason %}{{ interaction_result.details.reason }}{% endif %}</p>
+                {% if interaction_result.status == 'WARNING' %}<p class="clinical-check-count">{{ interaction_alerts|length }} alert{{ interaction_alerts|length|pluralize }}</p>{% endif %}
+            {% endif %}
         </section>
 
         <section class="clinical-check-card">
-            <p><strong>Allergy Check</strong></p>
+            <div class="clinical-check-heading"><strong>Allergy Check</strong>
             {% if allergy_result %}
                 <span class="badge {% if allergy_result.status == 'PASSED' %}badge-success{% elif allergy_result.status == 'WARNING' %}badge-warning{% else %}badge-secondary{% endif %}">{{ allergy_result.status }}</span>
-                <p class="clinical-meta">{% if allergy_result.details.reason %}{{ allergy_result.details.reason }}{% elif allergy_result.checked_at %}Checked at {{ allergy_result.checked_at|date:"F j, Y - H:i" }}.{% endif %}</p>
             {% else %}<span class="badge badge-secondary">Not yet evaluated</span>{% endif %}
+            </div>
+            {% if allergy_result %}
+                <p class="clinical-meta">{% if allergy_result.details.reason %}{{ allergy_result.details.reason }}{% elif allergy_result.checked_at %}Checked at {{ allergy_result.checked_at|date:"F j, Y - H:i" }}.{% endif %}</p>
+                {% if allergy_result.status == 'WARNING' %}<p class="clinical-check-count">{{ allergy_alerts|length }} alert{{ allergy_alerts|length|pluralize }}</p>{% endif %}
+            {% endif %}
         </section>
 
         <section class="clinical-check-card">
-            <p><strong>Dosage Check</strong></p>
+            <div class="clinical-check-heading"><strong>Dosage Check</strong>
             {% if dosage_result %}
                 <span class="badge {% if dosage_result.status == 'PASSED' %}badge-success{% elif dosage_result.status == 'WARNING' %}badge-warning{% else %}badge-secondary{% endif %}">{{ dosage_result.status }}</span>
-                <p class="clinical-meta">{% if dosage_result.details.reason %}{{ dosage_result.details.reason }}{% else %}{{ dosage_result.details.evaluated_item_count }} medicine dosage{{ dosage_result.details.evaluated_item_count|pluralize }} evaluated.{% endif %}</p>
             {% else %}<span class="badge badge-secondary">Not yet evaluated</span>{% endif %}
+            </div>
+            {% if dosage_result %}
+                <p class="clinical-meta">{% if dosage_result.details.reason %}{{ dosage_result.details.reason }}{% else %}{{ dosage_result.details.evaluated_item_count }} medicine dosage{{ dosage_result.details.evaluated_item_count|pluralize }} evaluated.{% endif %}</p>
+                {% if dosage_result.status == 'WARNING' %}<p class="clinical-check-count">{{ dosage_alerts|length }} alert{{ dosage_alerts|length|pluralize }}</p>{% endif %}
+            {% endif %}
         </section>
     </div>
+
+    {% include 'dispensing/_ai_review_panel.html' with assessment=risk_assessment review_completed=clinical_review show_review_completeness=True review_complete=clinical_review_complete incomplete_count=incomplete_check_count panel_title='AI Review Priority' panel_heading_id='ai-priority-title' %}
 
     {% for alert in interaction_alerts %}
     <article class="clinical-alert clinical-alert-{{ alert.severity|lower }}">

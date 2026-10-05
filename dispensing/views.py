@@ -85,6 +85,18 @@ def _clinical_context(txn, cart):
         for result in txn.clinical_check_results.all()
     } if review else {}
     alerts = list(txn.clinical_alerts.select_related('medicine_a', 'medicine_b', 'allergen')) if review else []
+    expected_check_types = {
+        ClinicalCheckType.DRUG_INTERACTION,
+        ClinicalCheckType.ALLERGY,
+        ClinicalCheckType.DOSAGE,
+    }
+    incomplete_check_count = 0
+    if review:
+        incomplete_check_count = sum(
+            1 for check_type in expected_check_types
+            if check_type not in results
+            or results[check_type].status == ClinicalCheckStatus.NOT_CHECKED
+        )
     return {
         'clinical_review': review,
         'interaction_result': results.get(ClinicalCheckType.DRUG_INTERACTION),
@@ -95,6 +107,8 @@ def _clinical_context(txn, cart):
         'dosage_alerts': [alert for alert in alerts if alert.alert_type == AlertTypeChoices.DOSAGE],
         'clinical_alerts': alerts,
         'risk_assessment': getattr(txn, 'risk_assessment', None) if review else None,
+        'clinical_review_complete': bool(review) and incomplete_check_count == 0,
+        'incomplete_check_count': incomplete_check_count if review else len(expected_check_types),
     }
 
 
@@ -834,7 +848,8 @@ def run_clinical_review(request, pk):
         elif result['status'] == ClinicalCheckStatus.PASSED:
             messages.success(request, 'Clinical review completed with no matching active rules in applicable checks.')
         elif result['status'] == ClinicalCheckStatus.NOT_APPLICABLE:
-            messages.info(request, 'Drug interaction checking is not applicable with fewer than two medicines.')
+            # The check card communicates this expected state without a page-level banner.
+            pass
         else:
             messages.error(request, 'The clinical review could not be completed.')
     return _cart_redirect(txn)

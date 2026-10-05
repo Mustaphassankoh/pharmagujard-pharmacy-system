@@ -1,0 +1,75 @@
+<section class="ai-panel" aria-labelledby="{{ panel_heading_id|default:'ai-priority-title' }}">
+    <div class="ai-panel-header">
+        <h4 id="{{ panel_heading_id|default:'ai-priority-title' }}" class="ai-priority-heading">{{ panel_title|default:'AI Review Priority' }}</h4>
+        <span class="badge ai-priority-badge {% if assessment %}badge-{{ assessment.final_priority|lower }}{% else %}badge-secondary{% endif %}">{% if assessment %}{{ assessment.final_priority }}{% elif review_completed %}Not available{% else %}Not yet evaluated{% endif %}</span>
+    </div>
+
+    {% if assessment %}
+    <p class="ai-plain-explanation">
+        {% if assessment.predicted_priority != assessment.final_priority %}The model predicted {{ assessment.predicted_priority }}, but a {{ assessment.final_priority }} deterministic clinical warning raised the final review priority to {{ assessment.final_priority }}.
+        {% elif assessment.final_priority == 'CRITICAL' %}A critical deterministic warning is present. Immediate pharmacist review is required.
+        {% elif assessment.final_priority == 'HIGH' %}The current review contains high-severity warning indicators and should receive priority pharmacist review.
+        {% elif assessment.final_priority == 'MODERATE' %}The current review contains warning indicators that may need pharmacist attention.
+        {% else %}No high-priority warning indicators were identified in the current review. Review the individual clinical checks before dispensing.{% endif %}
+    </p>
+
+    <details class="ai-technical-details">
+        <summary>Show Technical AI Details</summary>
+        <div class="ai-technical-body">
+            <dl class="ai-summary-list ai-technical-metadata">
+                <div><dt>Raw Model Prediction</dt><dd>{{ assessment.predicted_priority }}</dd></div>
+                <div><dt>Final Guarded Priority</dt><dd>{{ assessment.final_priority }}</dd></div>
+                <div><dt>Deterministic Severity Floor</dt><dd>{% if assessment.feature_snapshot.critical_alert_count %}CRITICAL{% elif assessment.feature_snapshot.high_alert_count %}HIGH{% else %}LOW{% endif %}</dd></div>
+                {% if assessment.prediction_probability != None %}<div><dt>Model Classification Confidence</dt><dd>{% widthratio assessment.prediction_probability 1 100 %}%</dd></div>{% endif %}
+                <div><dt>Model Version</dt><dd>{{ assessment.model_version.version }}</dd></div>
+            </dl>
+            {% if assessment.prediction_probability != None %}<p class="ai-technical-note">This is confidence in the review-priority class, not a probability of clinical safety.</p>{% endif %}
+            {% if assessment.predicted_priority != assessment.final_priority %}<p class="ai-guard-note"><strong>Safety guard applied:</strong> A {{ assessment.final_priority }}-severity deterministic clinical alert prevents the final review priority from being lower than {{ assessment.final_priority }}.</p>{% endif %}
+
+            <h5>Decision Path</h5>
+            <ol class="ai-decision-path">
+                {% for step in assessment.decision_path %}
+                <li>
+                    <strong>{% if step.feature == 'medicine_count' %}Medicine count{% elif step.feature == 'interaction_warning_count' %}Interaction warnings{% elif step.feature == 'allergy_warning_count' %}Allergy warnings{% elif step.feature == 'dosage_warning_count' %}Dosage warnings{% elif step.feature == 'low_alert_count' %}Low-severity alerts{% elif step.feature == 'moderate_alert_count' %}Moderate-severity alerts{% elif step.feature == 'high_alert_count' %}High-severity alerts{% elif step.feature == 'critical_alert_count' %}Critical alerts{% elif step.feature == 'not_checked_count' %}Not-checked results{% elif step.feature == 'warning_check_count' %}Warning checks{% elif step.feature == 'transaction_type' %}Transaction type code{% else %}{{ step.feature }}{% endif %} {{ step.operator }} {{ step.threshold }}</strong>
+                    <span>Observed value: {{ step.value }}</span><span>Result: {% if step.result %}Yes{% else %}No{% endif %}</span>
+                </li>
+                {% empty %}<li>No decision-path steps were stored.</li>{% endfor %}
+                <li><strong>Final model result: {{ assessment.predicted_priority }}</strong></li>
+            </ol>
+
+            <h5>Feature Snapshot</h5>
+            <div class="ai-table-wrap"><table class="ai-feature-table">
+                <thead><tr><th>Feature</th><th>Value</th></tr></thead>
+                <tbody>
+                    <tr><td>Medicine count</td><td>{{ assessment.feature_snapshot.medicine_count }}</td></tr>
+                    <tr><td>Interaction warnings</td><td>{{ assessment.feature_snapshot.interaction_warning_count }}</td></tr>
+                    <tr><td>Allergy warnings</td><td>{{ assessment.feature_snapshot.allergy_warning_count }}</td></tr>
+                    <tr><td>Dosage warnings</td><td>{{ assessment.feature_snapshot.dosage_warning_count }}</td></tr>
+                    <tr><td>Low-severity alerts</td><td>{{ assessment.feature_snapshot.low_alert_count }}</td></tr>
+                    <tr><td>Moderate-severity alerts</td><td>{{ assessment.feature_snapshot.moderate_alert_count }}</td></tr>
+                    <tr><td>High-severity alerts</td><td>{{ assessment.feature_snapshot.high_alert_count }}</td></tr>
+                    <tr><td>Critical alerts</td><td>{{ assessment.feature_snapshot.critical_alert_count }}</td></tr>
+                    <tr><td>Not-checked results</td><td>{{ assessment.feature_snapshot.not_checked_count }}</td></tr>
+                    <tr><td>Warning checks</td><td>{{ assessment.feature_snapshot.warning_check_count }}</td></tr>
+                    <tr><td>Transaction type</td><td>{% if assessment.feature_snapshot.transaction_type == 0 %}Direct Sale{% elif assessment.feature_snapshot.transaction_type == 1 %}External Prescription{% elif assessment.feature_snapshot.transaction_type == 2 %}Consultation{% else %}Unknown{% endif %}</td></tr>
+                </tbody>
+            </table></div>
+            <h5>Internal Explanation</h5><p class="ai-internal-explanation">{{ assessment.explanation }}</p>
+            <p class="ai-full-disclaimer"><strong>Development / synthetic data &mdash; not clinically validated.</strong> This model prioritizes pharmacist review. It does not diagnose, prescribe, determine clinical safety, or override deterministic clinical rules.</p>
+        </div>
+    </details>
+    {% elif review_completed %}
+    <p class="ai-plain-explanation">No AI review-priority assessment is currently available. Deterministic clinical checks remain available and authoritative.</p>
+    {% else %}
+    <p class="ai-plain-explanation">Run the clinical review to evaluate drug interactions, allergies, dosage checks, and AI review priority.</p>
+    {% endif %}
+
+    {% if show_review_completeness %}
+    <div class="clinical-completeness {% if review_complete %}is-complete{% else %}is-incomplete{% endif %}">
+        <strong>Clinical Review: {% if review_complete %}COMPLETE{% else %}INCOMPLETE{% endif %}</strong>
+        {% if not review_complete %}<span>{{ incomplete_count }} check{{ incomplete_count|pluralize }} {% if review_completed %}{% if incomplete_count == 1 %}was{% else %}were{% endif %} not fully{% else %}{% if incomplete_count == 1 %}has{% else %}have{% endif %} not been{% endif %} evaluated.</span>{% endif %}
+    </div>
+    {% endif %}
+
+    <p class="ai-disclaimer">Demo AI model &mdash; not clinically validated. Provides review priority only and does not replace clinical safety checks or pharmacist judgement.</p>
+</section>

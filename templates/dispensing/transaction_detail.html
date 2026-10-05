@@ -173,7 +173,9 @@
 {% endif %}
 
 {% if txn.clinical_review %}
-{% if historical_risk_assessment %}<div class="detail-card" style="max-width:100%; margin-bottom:20px;"><div class="detail-header"><strong>Historical AI Review Priority</strong></div><div class="detail-body"><p><strong>Final priority:</strong> {{ historical_risk_assessment.final_priority }}</p><p><strong>Raw prediction:</strong> {{ historical_risk_assessment.predicted_priority }}</p><p><strong>Model version:</strong> {{ historical_risk_assessment.model_version.version }}</p><p><strong>Model confidence:</strong> {{ historical_risk_assessment.prediction_probability }}</p><p>{{ historical_risk_assessment.explanation }}</p><pre>{{ historical_risk_assessment.decision_path }}</pre><p><strong>DEVELOPMENT / SYNTHETIC DATA — NOT CLINICALLY VALIDATED</strong></p><p><small>This model prioritizes pharmacist review. It does not diagnose, prescribe, determine clinical safety, or override deterministic clinical rules.</small></p></div></div>{% endif %}
+{% if historical_risk_assessment %}
+{% include 'dispensing/_ai_review_panel.html' with assessment=historical_risk_assessment review_completed=txn.clinical_review panel_title='Historical AI Review Priority' panel_heading_id='historical-ai-priority-title' %}
+{% endif %}
 <div class="detail-card" style="max-width:100%; margin-bottom:20px;">
     <div class="detail-header">
         <div style="font-size:1.1rem; font-weight:600;">Historical Clinical Safety Review</div>

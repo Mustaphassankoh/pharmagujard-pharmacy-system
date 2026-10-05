@@ -1,9 +1,11 @@
 from datetime import date, timedelta
 from decimal import Decimal
+from types import SimpleNamespace
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.test import TestCase
+from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
 
@@ -233,7 +235,101 @@ class ClinicalWorkflowTests(ClinicalTestBase):
         transaction = self.make_transaction()
         response = self.client.get(reverse('dispensing:sale_cart', kwargs={'pk': transaction.pk}))
         self.assertContains(response, 'Not yet evaluated')
+        html = response.content.decode()
+        ai_panel = html.split('<section class="ai-panel"', 1)[1].split('</section>', 1)[0]
+        self.assertEqual(ai_panel.count('Not yet evaluated'), 1)
+        self.assertNotIn('class="ai-priority-heading">NOT YET EVALUATED', ai_panel)
+        self.assertContains(response, 'Run the clinical review to evaluate drug interactions, allergies, dosage checks, and AI review priority.')
+        self.assertNotContains(response, 'Not available')
         self.assertNotContains(response, '>PASSED<', html=False)
+
+    def test_one_medicine_uses_not_applicable_card_without_page_banner(self):
+        transaction = self.make_transaction(TransactionTypeChoices.CONSULTATION)
+        self.set_session_cart(transaction, [self.medicines[0]])
+
+        response = self.client.post(
+            reverse('dispensing:run_clinical_review', kwargs={'pk': transaction.pk}),
+            follow=True,
+        )
+
+        self.assertContains(response, 'Drug Interaction Check')
+        self.assertContains(response, 'NOT_APPLICABLE')
+        self.assertNotContains(
+            response,
+            'Drug interaction checking is not applicable with fewer than two medicines.',
+        )
+        self.assertContains(response, 'Clinical Review: INCOMPLETE')
+
+    def test_two_medicines_without_interaction_show_passed(self):
+        transaction = self.make_transaction(TransactionTypeChoices.CONSULTATION)
+        self.set_session_cart(transaction, self.medicines[:2])
+
+        self.client.post(
+            reverse('dispensing:run_clinical_review', kwargs={'pk': transaction.pk}),
+        )
+
+        interaction = ClinicalCheckResult.objects.get(
+            transaction=transaction,
+            check_type=ClinicalCheckType.DRUG_INTERACTION,
+        )
+        self.assertEqual(interaction.status, ClinicalCheckStatus.PASSED)
+        ClinicalCheckResult.objects.filter(transaction=transaction).update(
+            status=ClinicalCheckStatus.PASSED
+        )
+        response = self.client.get(
+            reverse('dispensing:consultation_cart', kwargs={'pk': transaction.pk})
+        )
+        self.assertContains(response, 'Clinical Review: COMPLETE')
+
+    def test_not_checked_result_marks_review_incomplete(self):
+        transaction = self.make_transaction(TransactionTypeChoices.CONSULTATION)
+        self.set_session_cart(transaction, [self.medicines[0]])
+        run_clinical_review(transaction, [self.medicines[0].pk])
+        ClinicalCheckResult.objects.filter(
+            transaction=transaction,
+            check_type=ClinicalCheckType.DOSAGE,
+        ).update(status=ClinicalCheckStatus.NOT_CHECKED)
+
+        response = self.client.get(
+            reverse('dispensing:consultation_cart', kwargs={'pk': transaction.pk})
+        )
+
+        self.assertContains(response, 'Clinical Review: INCOMPLETE')
+        self.assertContains(response, '2 checks were not fully evaluated.')
+
+    def test_ai_metadata_is_inside_collapsed_technical_details(self):
+        assessment = SimpleNamespace(
+            predicted_priority='LOW',
+            final_priority='LOW',
+            prediction_probability=Decimal('0.91'),
+            model_version=SimpleNamespace(version='synthetic-test-1'),
+            feature_snapshot={
+                'medicine_count': 1, 'interaction_warning_count': 0,
+                'allergy_warning_count': 0, 'dosage_warning_count': 0,
+                'low_alert_count': 0, 'moderate_alert_count': 0,
+                'high_alert_count': 0, 'critical_alert_count': 0,
+                'not_checked_count': 0, 'warning_check_count': 0,
+                'transaction_type': 2,
+            },
+            decision_path=[],
+            explanation='Synthetic technical explanation.',
+        )
+        ai_panel = render_to_string('dispensing/_ai_review_panel.html', {
+            'assessment': assessment,
+            'review_completed': True,
+            'show_review_completeness': True,
+            'review_complete': True,
+            'incomplete_count': 0,
+        })
+        default_content, technical_content = ai_panel.split('<details class="ai-technical-details">', 1)
+
+        self.assertNotIn('Final Guarded Priority', default_content)
+        self.assertNotIn('Model Classification Confidence', default_content)
+        self.assertNotIn('Model Version', default_content)
+        self.assertIn('Show Technical AI Details', technical_content)
+        self.assertIn('Final Guarded Priority', technical_content)
+        self.assertIn('Model Classification Confidence', technical_content)
+        self.assertIn('Model Version', technical_content)
 
     def test_warning_confirmation_requires_acknowledgement_and_saves_audit_fields(self):
         self.make_rule()

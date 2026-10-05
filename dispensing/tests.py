@@ -23,7 +23,7 @@ from django.utils import timezone
 from inventory.models import MedicineBatch, StockTransaction, TransactionTypeChoices
 from medicines.models import Medicine, MedicineCategory
 
-from .forms import ExternalPrescriptionForm, PrescriptionItemForm
+from .forms import ConsultationForm, ExternalPrescriptionForm, PrescriptionItemForm
 from .models import (
     DispensingItem,
     DispensingTransaction,
@@ -622,7 +622,7 @@ class ConsultationWorkflowTest(TestCase):
                 'sex': SexChoices.FEMALE,
                 'age': 45,
                 'weight': 75.5,
-                'pregnancy_status': PregnancyStatusChoices.UNKNOWN,
+                'pregnancy_status': PregnancyStatusChoices.NOT_PREGNANT,
                 'symptoms': 'Headache, fever',
                 'symptom_duration': '3 days',
                 'known_allergies': 'Penicillin',
@@ -641,6 +641,33 @@ class ConsultationWorkflowTest(TestCase):
         self.assertEqual(float(metadata.weight), 75.5)
         self.assertEqual(metadata.known_allergies, 'Penicillin')
         self.assertEqual(metadata.notes, 'Encourage hydration.')
+
+    def test_consultation_form_uses_clear_units_and_supported_choices(self):
+        form = ConsultationForm()
+
+        self.assertEqual(form.fields['weight'].label, 'Weight (kg)')
+        self.assertFalse(form.fields['weight'].required)
+        self.assertFalse(form.fields['sex'].required)
+        self.assertFalse(form.fields['pregnancy_status'].required)
+        self.assertEqual(
+            [value for value, _label in form.fields['sex'].choices if value],
+            [SexChoices.MALE, SexChoices.FEMALE],
+        )
+        self.assertEqual(
+            [value for value, _label in form.fields['pregnancy_status'].choices if value],
+            [PregnancyStatusChoices.PREGNANT, PregnancyStatusChoices.NOT_PREGNANT],
+        )
+
+    def test_legacy_consultation_choices_cannot_be_submitted_by_new_form(self):
+        form = ConsultationForm(data={
+            'symptoms': 'Synthetic symptoms',
+            'sex': SexChoices.OTHER,
+            'pregnancy_status': PregnancyStatusChoices.UNKNOWN,
+        })
+
+        self.assertFalse(form.is_valid())
+        self.assertIn('sex', form.errors)
+        self.assertIn('pregnancy_status', form.errors)
 
     def test_consultation_validation_symptoms_required_and_weight_positive(self):
         """Validation enforces symptoms presence and positive weight."""
@@ -713,6 +740,8 @@ class ConsultationWorkflowTest(TestCase):
             symptom_duration="2 days",
             notes="Review if fever persists.",
             weight=80.5,
+            sex=SexChoices.OTHER,
+            pregnancy_status=PregnancyStatusChoices.UNKNOWN,
         )
 
         response = self.client.get(reverse('dispensing:transaction_detail', kwargs={'pk': txn.pk}))
@@ -721,3 +750,5 @@ class ConsultationWorkflowTest(TestCase):
         self.assertContains(response, "2 days")
         self.assertContains(response, "Review if fever persists.")
         self.assertContains(response, "Consultation Details")
+        self.assertContains(response, "Other")
+        self.assertContains(response, "Unknown / Not Applicable")

@@ -217,6 +217,34 @@ textarea.compact-textarea { min-height: 0; }
 .form-row.field-min_age.field-max_age > div,
 .form-row.field-min_weight.field-max_weight > div { display: flex; flex-wrap: wrap; gap: 16px; }
 .form-row .fieldBox { min-width: min(100%, 260px); flex: 1 1 260px; }
+.related-widget-wrapper {
+    display: flex !important;
+    width: 100%;
+    max-width: 100%;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    float: none !important;
+    overflow: visible !important;
+}
+.related-widget-wrapper > select,
+.related-widget-wrapper > .select2-container {
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: 100%;
+    flex: 1 1 240px;
+}
+.related-widget-wrapper .select2-selection { max-width: 100%; }
+.related-widget-wrapper-link {
+    display: inline-flex !important;
+    width: 28px;
+    height: 32px;
+    margin-left: 0 !important;
+    flex: 0 0 28px;
+    align-items: center;
+    justify-content: center;
+}
+.related-widget-wrapper-link img { max-width: 16px; max-height: 16px; }
 input:focus, select:focus, textarea:focus {
     border-color: #0F766E;
     outline: none;
@@ -381,6 +409,8 @@ ul.messagelist li.error { color: #991B1B; background-color: #FEF2F2; border-colo
     #changelist-filter-extra-actions { margin-bottom: 0; }
     .submit-row { justify-content: stretch; }
     .submit-row input, .submit-row a { flex: 1 1 auto; text-align: center; }
+    .related-widget-wrapper > select,
+    .related-widget-wrapper > .select2-container { flex-basis: calc(100% - 136px); }
 }
 
 @media (max-width: 520px) {

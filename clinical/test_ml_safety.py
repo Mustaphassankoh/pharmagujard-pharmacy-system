@@ -78,6 +78,55 @@ class Milestone12MLSafetyTests(TestCase):
         self.assertEqual(assessment.model_version, self.model_version)
         self.assertEqual(assessment.predicted_priority, 'LOW')
 
+    def test_ai_panel_keeps_technical_explanation_collapsed_by_default(self):
+        transaction = self.transaction(TransactionTypeChoices.CONSULTATION)
+        predict_review_priority(transaction)
+        session = self.client.session
+        session[f'cart_{transaction.pk}'] = {
+            str(self.medicine.pk): {
+                'medicine_id': self.medicine.pk,
+                'medicine_name': str(self.medicine),
+                'quantity': 1,
+            }
+        }
+        session.save()
+        self.client.login(username='ml_staff', password='pw')
+
+        response = self.client.post(
+            reverse('dispensing:run_clinical_review', args=[transaction.pk]), follow=True
+        )
+
+        self.assertNotContains(response, 'Model Status')
+        self.assertContains(response, 'Model Classification Confidence')
+        self.assertContains(response, 'Show Technical AI Details')
+        self.assertContains(response, 'Internal Explanation')
+        self.assertContains(response, '<details class="ai-technical-details">', html=False)
+        self.assertNotContains(response, '<details class="ai-technical-details" open', html=False)
+
+    def test_guarded_priority_and_historical_panel_use_stored_assessment(self):
+        transaction = self.transaction(TransactionTypeChoices.CONSULTATION)
+        alert = self.alert(transaction, 'HIGH')
+        alert.acknowledged_by = self.user
+        alert.acknowledged_at = timezone.now()
+        alert.save(update_fields=['acknowledged_by', 'acknowledged_at'])
+        assessment = predict_review_priority(transaction)['assessment']
+        self.assertEqual(assessment.predicted_priority, 'LOW')
+        self.assertEqual(assessment.final_priority, 'HIGH')
+        transaction.status = TransactionStatusChoices.COMPLETED
+        transaction.completed_at = timezone.now()
+        transaction.save()
+        self.client.login(username='ml_staff', password='pw')
+
+        response = self.client.get(reverse('dispensing:transaction_detail', args=[transaction.pk]))
+
+        self.assertContains(response, 'Historical AI Review Priority')
+        self.assertContains(response, 'The model predicted LOW, but a HIGH deterministic clinical warning raised the final review priority to HIGH.')
+        self.assertContains(response, 'Raw Model Prediction')
+        self.assertContains(response, 'Deterministic Severity Floor')
+        self.assertContains(response, 'Decision Path')
+        self.assertContains(response, 'Feature Snapshot')
+        self.assertContains(response, 'Interaction warnings')
+
     def test_critical_and_high_deterministic_guards_preserve_raw_prediction(self):
         for severity, expected in (('HIGH','HIGH'),('CRITICAL','CRITICAL')):
             with self.subTest(severity=severity):
@@ -127,10 +176,10 @@ class Milestone12MLSafetyTests(TestCase):
         session.save(); self.client.login(username='ml_staff',password='pw')
         self.model_version.artifact_path='invalid.joblib'; self.model_version.save()
         review=self.client.post(reverse('dispensing:run_clinical_review',args=[transaction.pk]),follow=True)
-        self.assertContains(review,'AI Review Priority:')
-        self.assertContains(review,'NOT_AVAILABLE')
-        self.assertContains(review,'DEVELOPMENT / SYNTHETIC DATA — NOT CLINICALLY VALIDATED')
-        self.assertContains(review,'This model prioritizes pharmacist review. It does not diagnose, prescribe, determine clinical safety, or override deterministic clinical rules.')
+        self.assertContains(review,'AI Review Priority')
+        self.assertContains(review,'Not available', count=1)
+        self.assertContains(review,'Demo AI model &mdash; not clinically validated.', html=False)
+        self.assertContains(review,'Provides review priority only and does not replace clinical safety checks or pharmacist judgement.')
         response=self.client.post(reverse('dispensing:confirm_sale',args=[transaction.pk]))
         self.assertEqual(response.status_code,302)
         transaction.refresh_from_db(); self.batch.refresh_from_db()

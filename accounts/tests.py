@@ -51,6 +51,27 @@ class DeploymentReadinessTests(SimpleTestCase):
             resolve_artifact_path('../outside-project.joblib')
 
 
+class SidebarLayoutTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='sidebar-user', password='pw', full_name='Sidebar User', role='PHARMACY_STAFF'
+        )
+        self.client.force_login(self.user)
+
+    def test_sign_out_is_in_the_sidebar_footer(self):
+        response = self.client.get(reverse('dashboard'))
+
+        self.assertContains(response, 'class="sidebar-footer"', html=False)
+        self.assertContains(response, '>Sign Out<', html=False)
+        self.assertContains(response, 'class="sidebar-logout-form"', html=False)
+        footer = response.content.decode().split('<div class="sidebar-footer">', 1)[1].split('</div>', 1)[0]
+        self.assertNotIn('sidebar-user', footer)
+        self.assertNotIn('Sidebar User', footer)
+        self.assertNotIn('Pharmacy Staff', footer)
+        for navigation_label in ('Dashboard', 'Medicines', 'Inventory', 'Consultation', 'Transactions'):
+            self.assertNotIn(navigation_label, footer)
+
+
 class AdminBrandingTests(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -144,3 +165,13 @@ class AdminBrandingTests(TestCase):
         self.assertContains(response, 'compact-textarea')
         self.assertContains(response, 'Enter the guideline, document, or reference supporting this rule.')
         self.assertContains(response, 'The date and time when this rule becomes usable in clinical checks.')
+
+    def test_related_select_widgets_keep_their_action_controls_grouped(self):
+        for url_name in (
+            'admin:clinical_druginteractionrule_add',
+            'admin:clinical_allergyrule_add',
+        ):
+            with self.subTest(url_name=url_name):
+                response = self.client.get(reverse(url_name))
+                self.assertContains(response, 'related-widget-wrapper')
+                self.assertContains(response, 'related-widget-wrapper-link')

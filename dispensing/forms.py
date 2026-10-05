@@ -73,7 +73,7 @@ class ExternalPrescriptionForm(forms.ModelForm):
         for field in self.fields.values():
             field.widget.attrs.update({'class': 'form-control'})
 
-from .models import Consultation
+from .models import Consultation, PregnancyStatusChoices, SexChoices
 
 class ConsultationForm(forms.ModelForm):
     class Meta:
@@ -84,6 +84,9 @@ class ConsultationForm(forms.ModelForm):
             'pregnancy_status', 'notes'
         ]
         labels = {
+            'weight': 'Weight (kg)',
+            'sex': 'Sex',
+            'pregnancy_status': 'Pregnancy Status',
             'structured_allergies': 'Structured Allergies',
             'known_allergies': 'Additional Allergy Notes',
         }
@@ -103,6 +106,18 @@ class ConsultationForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Keep legacy model choices readable on historical records while
+        # limiting new consultation entry to the supported options.
+        self.fields['sex'].choices = [
+            ('', '---------'),
+            (SexChoices.MALE, SexChoices.MALE.label),
+            (SexChoices.FEMALE, SexChoices.FEMALE.label),
+        ]
+        self.fields['pregnancy_status'].choices = [
+            ('', '---------'),
+            (PregnancyStatusChoices.PREGNANT, PregnancyStatusChoices.PREGNANT.label),
+            (PregnancyStatusChoices.NOT_PREGNANT, PregnancyStatusChoices.NOT_PREGNANT.label),
+        ]
         self.fields['structured_allergies'].queryset = self.fields['structured_allergies'].queryset.filter(is_active=True)
         for name, field in self.fields.items():
             if name != 'structured_allergies':
