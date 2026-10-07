@@ -310,6 +310,16 @@ class SidebarLayoutTests(TestCase):
         for navigation_label in ('Dashboard', 'Medicines', 'Inventory', 'Consultation', 'Transactions'):
             self.assertNotIn(navigation_label, footer)
 
+    def test_inventory_navigation_is_accessible_and_active_group_stays_open(self):
+        response = self.client.get(reverse('inventory:low_stock_list'))
+
+        self.assertContains(response, 'data-nav-group="inventory"', html=False)
+        self.assertContains(response, 'data-active="true"', html=False)
+        self.assertContains(response, 'aria-expanded="true"', html=False)
+        self.assertContains(response, 'id="inventory-subnav"', html=False)
+        self.assertContains(response, 'nav-child-link active', html=False)
+        self.assertContains(response, 'js/sidebar.js')
+
 
 class AdminBrandingTests(TestCase):
     @classmethod

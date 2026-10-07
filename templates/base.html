@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}PharmaGuard{% endblock %}</title>
     {% load static %}
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=dashboard-refresh-2">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=sidebar-navigation-1">
+    <script src="{% static 'js/sidebar.js' %}?v=sidebar-navigation-1" defer></script>
 </head>
 <body class="{% if not user.is_authenticated %}auth-page{% endif %}">
     <div class="layout">
@@ -22,48 +23,84 @@
                 </a>
             </div>
             <nav class="sidebar-nav" aria-label="Main navigation">
-                <ul>
+                <ul class="nav-list">
                     <li class="nav-section">Overview</li>
-                    <li><a class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'dashboard' %}">Dashboard</a></li>
+                    <li>
+                        <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'dashboard' %}">
+                            <svg class="nav-icon" aria-hidden="true"><use href="#icon-layout-dashboard"></use></svg><span>Dashboard</span>
+                        </a>
+                    </li>
+
                     <li class="nav-section">Pharmacy</li>
-                    <li><a class="{% if request.resolver_match.namespace == 'medicines' %}active{% endif %}" href="{% url 'medicines:medicine_list' %}">Medicines</a></li>
                     {% if user.role == 'ADMIN' or user.is_superuser %}
-                    <li><a class="nav-subitem {% if request.resolver_match.url_name == 'category_list' %}active{% endif %}" href="{% url 'medicines:category_list' %}">Categories</a></li>
+                    <li class="nav-group is-open {% if request.resolver_match.namespace == 'medicines' %}is-active{% endif %}" data-nav-group="medicines" data-active="{% if request.resolver_match.namespace == 'medicines' %}true{% else %}false{% endif %}">
+                        <div class="nav-parent-row">
+                            <a class="nav-link nav-parent-link {% if request.resolver_match.namespace == 'medicines' and request.resolver_match.url_name != 'category_list' and request.resolver_match.url_name != 'category_create' and request.resolver_match.url_name != 'category_update' %}active{% endif %}" href="{% url 'medicines:medicine_list' %}">
+                                <svg class="nav-icon" aria-hidden="true"><use href="#icon-pill"></use></svg><span>Medicines</span>
+                            </a>
+                            <button class="nav-toggle" type="button" aria-expanded="true" aria-controls="medicines-subnav" aria-label="Toggle Medicines navigation">
+                                <svg class="nav-chevron" aria-hidden="true"><use href="#icon-chevron-down"></use></svg>
+                            </button>
+                        </div>
+                        <ul class="nav-children" id="medicines-subnav">
+                            <li><a class="nav-child-link {% if request.resolver_match.url_name == 'category_list' or request.resolver_match.url_name == 'category_create' or request.resolver_match.url_name == 'category_update' %}active{% endif %}" href="{% url 'medicines:category_list' %}">Categories</a></li>
+                        </ul>
+                    </li>
+                    {% else %}
+                    <li><a class="nav-link nav-parent-link {% if request.resolver_match.namespace == 'medicines' %}active{% endif %}" href="{% url 'medicines:medicine_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-pill"></use></svg><span>Medicines</span></a></li>
                     {% endif %}
-                    <li><a class="{% if request.resolver_match.namespace == 'inventory' %}active{% endif %}" href="{% url 'inventory:inventory_list' %}">Inventory</a></li>
-                    <li><a class="nav-subitem {% if request.resolver_match.url_name == 'batch_list' %}active{% endif %}" href="{% url 'inventory:batch_list' %}">Medicine Batches</a></li>
-                    <li><a class="nav-subitem {% if request.resolver_match.url_name == 'low_stock_list' %}active{% endif %}" href="{% url 'inventory:low_stock_list' %}">Low Stock</a></li>
-                    <li><a class="nav-subitem {% if request.resolver_match.url_name == 'expiry_list' %}active{% endif %}" href="{% url 'inventory:expiry_list' %}">Expiry Alerts</a></li>
-                    {% if user.role == 'ADMIN' or user.is_superuser %}
-                    <li><a class="nav-subitem {% if request.resolver_match.url_name == 'transaction_list' and request.resolver_match.namespace == 'inventory' %}active{% endif %}" href="{% url 'inventory:transaction_list' %}">Stock Transactions</a></li>
-                    {% endif %}
+
+                    <li class="nav-group is-open {% if request.resolver_match.namespace == 'inventory' %}is-active{% endif %}" data-nav-group="inventory" data-active="{% if request.resolver_match.namespace == 'inventory' %}true{% else %}false{% endif %}">
+                        <div class="nav-parent-row">
+                            <a class="nav-link nav-parent-link {% if request.resolver_match.url_name == 'inventory_list' %}active{% endif %}" href="{% url 'inventory:inventory_list' %}">
+                                <svg class="nav-icon" aria-hidden="true"><use href="#icon-boxes"></use></svg><span>Inventory</span>
+                            </a>
+                            <button class="nav-toggle" type="button" aria-expanded="true" aria-controls="inventory-subnav" aria-label="Toggle Inventory navigation">
+                                <svg class="nav-chevron" aria-hidden="true"><use href="#icon-chevron-down"></use></svg>
+                            </button>
+                        </div>
+                        <ul class="nav-children" id="inventory-subnav">
+                            <li><a class="nav-child-link {% if request.resolver_match.url_name == 'batch_list' or request.resolver_match.url_name == 'batch_detail' or request.resolver_match.url_name == 'batch_create' or request.resolver_match.url_name == 'batch_update' or request.resolver_match.url_name == 'batch_adjust' %}active{% endif %}" href="{% url 'inventory:batch_list' %}">Medicine Batches</a></li>
+                            <li><a class="nav-child-link {% if request.resolver_match.url_name == 'low_stock_list' %}active{% endif %}" href="{% url 'inventory:low_stock_list' %}">Low Stock</a></li>
+                            <li><a class="nav-child-link {% if request.resolver_match.url_name == 'expiry_list' %}active{% endif %}" href="{% url 'inventory:expiry_list' %}">Expiry Alerts</a></li>
+                            {% if user.role == 'ADMIN' or user.is_superuser %}<li><a class="nav-child-link {% if request.resolver_match.url_name == 'transaction_list' and request.resolver_match.namespace == 'inventory' %}active{% endif %}" href="{% url 'inventory:transaction_list' %}">Stock Transactions</a></li>{% endif %}
+                        </ul>
+                    </li>
+
                     <li class="nav-section">Dispensing</li>
-                    <li><a class="nav-subitem {% if request.resolver_match.url_name == 'new_direct_sale' or request.resolver_match.url_name == 'sale_cart' %}active{% endif %}" href="{% url 'dispensing:new_direct_sale' %}">Direct Sale</a></li>
-                    <li><a class="nav-subitem {% if request.resolver_match.url_name == 'new_external_prescription' or request.resolver_match.url_name == 'external_prescription_cart' %}active{% endif %}" href="{% url 'dispensing:new_external_prescription' %}">External Prescription</a></li>
-                    <li><a class="nav-subitem {% if request.resolver_match.url_name == 'new_consultation' or request.resolver_match.url_name == 'consultation_cart' %}active{% endif %}" href="{% url 'dispensing:new_consultation' %}">Consultation</a></li>
-                    <li><a class="nav-subitem {% if request.resolver_match.namespace == 'dispensing' and request.resolver_match.url_name == 'transaction_list' or request.resolver_match.url_name == 'transaction_detail' %}active{% endif %}" href="{% url 'dispensing:transaction_list' %}">Transactions</a></li>
+                    <li><a class="nav-link {% if request.resolver_match.url_name == 'new_direct_sale' or request.resolver_match.url_name == 'sale_cart' %}active{% endif %}" href="{% url 'dispensing:new_direct_sale' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-shopping-cart"></use></svg><span>Direct Sale</span></a></li>
+                    <li><a class="nav-link {% if request.resolver_match.url_name == 'new_external_prescription' or request.resolver_match.url_name == 'external_prescription_cart' %}active{% endif %}" href="{% url 'dispensing:new_external_prescription' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-file-text"></use></svg><span>External Prescription</span></a></li>
+                    <li><a class="nav-link {% if request.resolver_match.url_name == 'new_consultation' or request.resolver_match.url_name == 'consultation_cart' %}active{% endif %}" href="{% url 'dispensing:new_consultation' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-stethoscope"></use></svg><span>Consultation</span></a></li>
+                    <li><a class="nav-link {% if request.resolver_match.namespace == 'dispensing' and request.resolver_match.url_name == 'transaction_list' or request.resolver_match.namespace == 'dispensing' and request.resolver_match.url_name == 'transaction_detail' %}active{% endif %}" href="{% url 'dispensing:transaction_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-receipt-text"></use></svg><span>Transactions</span></a></li>
+
                     {% if user.role == 'ADMIN' or user.is_superuser %}
                     <li class="nav-section">Clinical oversight</li>
-                    <li><a class="{% if request.resolver_match.namespace == 'clinical' and request.resolver_match.url_name == 'governance_dashboard' %}active{% endif %}" href="{% url 'clinical:governance_dashboard' %}">Governance</a></li>
-                    {% if user.role == 'ADMIN' and user.pharmacy_id %}
-                    <li><a class="nav-subitem {% if request.resolver_match.url_name == 'rule_management' or request.resolver_match.url_name == 'rule_create' or request.resolver_match.url_name == 'allergen_create' or request.resolver_match.url_name == 'allergen_update' %}active{% endif %}" href="{% url 'clinical:rule_management' %}">Rule Management</a></li>
-                    {% endif %}
-                    <li><a class="{% if request.resolver_match.namespace == 'clinical' and request.resolver_match.url_name == 'rule_report' or request.resolver_match.url_name == 'audit_report' or request.resolver_match.url_name == 'audit_detail' or request.resolver_match.url_name == 'rule_history' %}active{% endif %}" href="{% url 'clinical:rule_report' %}">Reports</a></li>
-                    {% if user.role == 'ADMIN' and user.pharmacy_id %}
-                    <li class="nav-section">Administration</li>
-                    <li><a class="{% if request.resolver_match.url_name == 'staff_list' or request.resolver_match.url_name == 'staff_create' or request.resolver_match.url_name == 'staff_update' or request.resolver_match.url_name == 'staff_password' %}active{% endif %}" href="{% url 'staff_list' %}">Staff</a></li>
-                    <li><a class="{% if request.resolver_match.url_name == 'pharmacy_profile' %}active{% endif %}" href="{% url 'pharmacy_profile' %}">Pharmacy Profile</a></li>
-                    {% endif %}
+                    <li><a class="nav-link {% if request.resolver_match.namespace == 'clinical' and request.resolver_match.url_name == 'governance_dashboard' %}active{% endif %}" href="{% url 'clinical:governance_dashboard' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-shield-check"></use></svg><span>Governance</span></a></li>
+                    <li><a class="nav-link {% if request.resolver_match.namespace == 'clinical' and request.resolver_match.url_name != 'governance_dashboard' %}active{% endif %}" href="{% url 'clinical:rule_report' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-chart-column"></use></svg><span>Reports</span></a></li>
                     {% endif %}
                 </ul>
             </nav>
             <div class="sidebar-footer">
                 <form action="{% url 'logout' %}" method="post" class="sidebar-logout-form">
                     {% csrf_token %}
-                    <button type="submit" class="sidebar-logout-button">Sign Out</button>
+                    <button type="submit" class="sidebar-logout-button"><svg class="nav-icon" aria-hidden="true"><use href="#icon-log-out"></use></svg><span>Sign Out</span></button>
                 </form>
             </div>
         </aside>
+        <svg class="icon-sprite" aria-hidden="true">
+            <symbol id="icon-layout-dashboard" viewBox="0 0 24 24"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></symbol>
+            <symbol id="icon-pill" viewBox="0 0 24 24"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></symbol>
+            <symbol id="icon-boxes" viewBox="0 0 24 24"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></symbol>
+            <symbol id="icon-shopping-cart" viewBox="0 0 24 24"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h7.8a2 2 0 0 0 2-1.61L20.15 6H5.12"/></symbol>
+            <symbol id="icon-file-text" viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5Z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/></symbol>
+            <symbol id="icon-stethoscope" viewBox="0 0 24 24"><path d="M11 2v2"/><path d="M5 2v2"/><path d="M5 3H4a2 2 0 0 0-2 2v3a6 6 0 0 0 12 0V5a2 2 0 0 0-2-2h-1"/><path d="M8 14a6 6 0 0 0 12 0v-3"/><circle cx="20" cy="10" r="2"/></symbol>
+            <symbol id="icon-receipt-text" viewBox="0 0 24 24"><path d="M4 2v20l2-2 2 2 2-2 2 2 2-2 2 2 2-2 2 2V2l-2 2-2-2-2 2-2-2-2 2-2-2-2 2Z"/><path d="M16 8h-6"/><path d="M16 12h-6"/><path d="M13 16h-3"/></symbol>
+            <symbol id="icon-shield-check" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-8 9-4.5-1.5-8-4-8-9V5l8-3 8 3Z"/><path d="m9 12 2 2 4-4"/></symbol>
+            <symbol id="icon-chart-column" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></symbol>
+            <symbol id="icon-log-out" viewBox="0 0 24 24"><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/></symbol>
+            <symbol id="icon-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+            <symbol id="icon-chevron-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+        </svg>
         {% endif %}
 
         <!-- Main Content Area -->

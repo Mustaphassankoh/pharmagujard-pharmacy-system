@@ -89,13 +89,16 @@ class StaffManagementTests(TestCase):
         self.assertEqual(self.pharmacy_a.name, 'Staff Pharmacy A Updated')
         self.assertEqual(self.pharmacy_b.name, 'Staff Pharmacy B')
 
-    def test_admin_sidebar_shows_management_but_staff_sidebar_does_not(self):
+    def test_sidebar_uses_approved_operational_navigation(self):
         self.client.force_login(self.admin_a)
         admin_response = self.client.get(reverse('dashboard'))
-        self.assertContains(admin_response, 'Administration')
-        self.assertContains(admin_response, 'Pharmacy Profile')
+        self.assertContains(admin_response, 'Clinical oversight')
+        self.assertNotContains(admin_response, 'Administration')
+        self.assertNotContains(admin_response, 'Pharmacy Profile')
+        self.assertEqual(self.client.get(reverse('pharmacy_profile')).status_code, 200)
         self.client.force_login(self.staff_a)
         staff_response = self.client.get(reverse('dashboard'))
+        self.assertNotContains(staff_response, 'Clinical oversight')
         self.assertNotContains(staff_response, 'Administration')
         self.assertNotContains(staff_response, 'Pharmacy Profile')
 
