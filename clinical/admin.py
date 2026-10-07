@@ -17,6 +17,7 @@ from .forms import (
     AllergenAdminForm, AllergyRuleAdminForm, ClinicalRiskModelVersionAdminForm,
     DosageRuleAdminForm, DrugInteractionRuleAdminForm,
 )
+from accounts.admin import PharmacyScopedAdminMixin
 
 
 RULE_GOVERNANCE_FIELDS = (
@@ -33,7 +34,7 @@ RULE_SOURCE_FIELDS = (
 )
 
 
-class ClinicalKnowledgeAdmin(admin.ModelAdmin):
+class ClinicalKnowledgeAdmin(PharmacyScopedAdminMixin, admin.ModelAdmin):
     actions = ('submit_selected_for_review', 'approve_selected', 'activate_selected', 'retire_selected')
 
     def _is_clinical_admin(self, request):
@@ -83,9 +84,13 @@ class ClinicalKnowledgeAdmin(admin.ModelAdmin):
         model_fields = {field.name for field in obj._meta.fields} if obj else {field.name for field in self.model._meta.fields}
         governance = tuple(field for field in governance if field in model_fields)
         timestamps = tuple(field for field in ('created_at', 'updated_at') if field in model_fields)
-        if obj and obj.status == RuleLifecycleStatus.ACTIVE:
-            return tuple(field.name for field in obj._meta.fields if field.name not in ('effective_to', 'next_review_date', 'change_reason'))
-        return governance + timestamps
+        if obj and getattr(obj, 'status', None) == RuleLifecycleStatus.ACTIVE:
+            readonly = tuple(field.name for field in obj._meta.fields if field.name not in ('effective_to', 'next_review_date', 'change_reason'))
+        else:
+            readonly = governance + timestamps
+        if not request.user.is_superuser and 'pharmacy' in model_fields:
+            readonly += ('pharmacy',)
+        return readonly
 
     def _run_action(self, request, queryset, service, reason):
         successes = 0
@@ -118,11 +123,11 @@ class ClinicalKnowledgeAdmin(admin.ModelAdmin):
 @admin.register(DrugInteractionRule)
 class DrugInteractionRuleAdmin(ClinicalKnowledgeAdmin):
     form = DrugInteractionRuleAdminForm
-    list_display = ('medicine_a', 'medicine_b', 'version', 'status_badge', 'severity_badge', 'effective_from', 'effective_to', 'created_by', 'approved_by', 'is_currently_usable')
+    list_display = ('medicine_a', 'medicine_b', 'pharmacy', 'version', 'status_badge', 'severity_badge', 'effective_from', 'effective_to', 'created_by', 'approved_by', 'is_currently_usable')
     list_filter = ('status', 'version', 'severity', 'is_active')
     search_fields = ('medicine_a__generic_name', 'medicine_b__generic_name', 'description', 'source_reference')
     fieldsets = (
-        ('Rule Definition', {'fields': (('medicine_a', 'medicine_b'), 'severity')}),
+        ('Rule Definition', {'fields': ('pharmacy', ('medicine_a', 'medicine_b'), 'severity')}),
         ('Clinical Information', {'fields': ('description', 'explanation', 'recommendation')}),
         ('Source Information', {'fields': RULE_SOURCE_FIELDS}),
         ('Governance', {'fields': RULE_GOVERNANCE_FIELDS}),
@@ -133,11 +138,11 @@ class DrugInteractionRuleAdmin(ClinicalKnowledgeAdmin):
 @admin.register(Allergen)
 class AllergenAdmin(ClinicalKnowledgeAdmin):
     form = AllergenAdminForm
-    list_display = ('name', 'is_active', 'updated_at')
+    list_display = ('name', 'pharmacy', 'is_active', 'updated_at')
     list_filter = ('is_active',)
     search_fields = ('name', 'description')
     fieldsets = (
-        ('Allergen Details', {'fields': ('name', 'description', 'is_active')}),
+        ('Allergen Details', {'fields': ('pharmacy', 'name', 'description', 'is_active')}),
         ('Audit Information', {'fields': (('created_at', 'updated_at'),), 'classes': ('collapse',)}),
     )
 
@@ -145,11 +150,11 @@ class AllergenAdmin(ClinicalKnowledgeAdmin):
 @admin.register(AllergyRule)
 class AllergyRuleAdmin(ClinicalKnowledgeAdmin):
     form = AllergyRuleAdminForm
-    list_display = ('allergen', 'medicine', 'version', 'status_badge', 'severity_badge', 'effective_from', 'effective_to', 'created_by', 'approved_by', 'is_currently_usable')
+    list_display = ('allergen', 'medicine', 'pharmacy', 'version', 'status_badge', 'severity_badge', 'effective_from', 'effective_to', 'created_by', 'approved_by', 'is_currently_usable')
     list_filter = ('status', 'version', 'severity', 'is_active', 'allergen')
     search_fields = ('allergen__name', 'medicine__generic_name', 'description', 'source_reference')
     fieldsets = (
-        ('Rule Definition', {'fields': (('medicine', 'allergen'), 'severity')}),
+        ('Rule Definition', {'fields': ('pharmacy', ('medicine', 'allergen'), 'severity')}),
         ('Clinical Information', {'fields': ('description', 'explanation', 'recommendation')}),
         ('Source Information', {'fields': RULE_SOURCE_FIELDS}),
         ('Governance', {'fields': RULE_GOVERNANCE_FIELDS}),
@@ -160,11 +165,11 @@ class AllergyRuleAdmin(ClinicalKnowledgeAdmin):
 @admin.register(DosageRule)
 class DosageRuleAdmin(ClinicalKnowledgeAdmin):
     form = DosageRuleAdminForm
-    list_display = ('medicine', 'dose_unit', 'version', 'status_badge', 'severity_badge', 'effective_from', 'effective_to', 'created_by', 'approved_by', 'is_currently_usable')
+    list_display = ('medicine', 'dose_unit', 'pharmacy', 'version', 'status_badge', 'severity_badge', 'effective_from', 'effective_to', 'created_by', 'approved_by', 'is_currently_usable')
     list_filter = ('status', 'version', 'dose_unit', 'severity', 'is_active')
     search_fields = ('medicine__generic_name', 'medicine__brand_name', 'description', 'source_reference')
     fieldsets = (
-        ('Rule Definition', {'fields': (('medicine', 'dose_unit'), 'severity')}),
+        ('Rule Definition', {'fields': ('pharmacy', ('medicine', 'dose_unit'), 'severity')}),
         ('Dose Limits', {'fields': (
             ('min_single_dose', 'max_single_dose'),
             ('min_frequency_per_day', 'max_frequency_per_day'),
@@ -179,7 +184,8 @@ class DosageRuleAdmin(ClinicalKnowledgeAdmin):
 
 
 @admin.register(ClinicalReview)
-class ClinicalReviewAdmin(admin.ModelAdmin):
+class ClinicalReviewAdmin(PharmacyScopedAdminMixin, admin.ModelAdmin):
+    pharmacy_lookup = 'transaction__pharmacy'
     list_display = ('transaction', 'status_badge', 'checked_pairs', 'checked_at')
     readonly_fields = ('transaction', 'status', 'medicine_fingerprint', 'checked_pairs', 'checked_at', 'created_at', 'updated_at')
 
@@ -198,7 +204,8 @@ class ClinicalReviewAdmin(admin.ModelAdmin):
 
 
 @admin.register(ClinicalCheckResult)
-class ClinicalCheckResultAdmin(admin.ModelAdmin):
+class ClinicalCheckResultAdmin(PharmacyScopedAdminMixin, admin.ModelAdmin):
+    pharmacy_lookup = 'transaction__pharmacy'
     list_display = ('transaction', 'check_type', 'status_badge', 'checked_at')
     list_filter = ('check_type', 'status')
     readonly_fields = [field.name for field in ClinicalCheckResult._meta.fields]
@@ -218,7 +225,8 @@ class ClinicalCheckResultAdmin(admin.ModelAdmin):
 
 
 @admin.register(ClinicalAlert)
-class ClinicalAlertAdmin(admin.ModelAdmin):
+class ClinicalAlertAdmin(PharmacyScopedAdminMixin, admin.ModelAdmin):
+    pharmacy_lookup = 'transaction__pharmacy'
     list_display = ('transaction', 'alert_type', 'severity_badge', 'medicine_a', 'medicine_b', 'allergen', 'acknowledged_at')
     list_filter = ('alert_type', 'severity')
     readonly_fields = [field.name for field in ClinicalAlert._meta.fields]
@@ -243,6 +251,10 @@ class ClinicalRuleAuditAdmin(admin.ModelAdmin):
     list_filter = ('rule_type', 'action', 'rule_version')
     search_fields = ('rule_type', 'change_reason')
     readonly_fields = [field.name for field in ClinicalRuleAudit._meta.fields]
+
+    def get_queryset(self, request):
+        from .reporting import get_audit_queryset
+        return get_audit_queryset(request.user)
 
     def has_add_permission(self, request):
         return False
@@ -272,7 +284,8 @@ class ClinicalRiskModelVersionAdmin(ClinicalKnowledgeAdmin):
 
 
 @admin.register(ClinicalRiskAssessment)
-class ClinicalRiskAssessmentAdmin(admin.ModelAdmin):
+class ClinicalRiskAssessmentAdmin(PharmacyScopedAdminMixin, admin.ModelAdmin):
+    pharmacy_lookup = 'transaction__pharmacy'
     list_display = ('transaction', 'model_version', 'predicted_priority_badge', 'final_priority_badge', 'created_at')
     readonly_fields = [field.name for field in ClinicalRiskAssessment._meta.fields]
     @admin.display(description='Predicted priority', ordering='predicted_priority')

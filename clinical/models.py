@@ -131,6 +131,7 @@ class GovernedRuleMixin(models.Model):
 
 
 class DosageRule(GovernedRuleMixin):
+    pharmacy = models.ForeignKey('accounts.Pharmacy', null=True, blank=True, on_delete=models.PROTECT, related_name='dosage_rules')
     medicine = models.ForeignKey(Medicine, on_delete=models.PROTECT, related_name='dosage_rules')
     dose_unit = models.CharField(max_length=20, choices=DoseUnitChoices.choices)
     min_single_dose = models.DecimalField(max_digits=12, decimal_places=4, null=True, blank=True)
@@ -185,6 +186,7 @@ class DosageRule(GovernedRuleMixin):
                 'max_duration_days', 'min_age', 'max_age', 'min_weight', 'max_weight', 'version',
             )
             duplicate = DosageRule.objects.filter(**{field: getattr(self, field) for field in duplicate_fields})
+            duplicate = duplicate.filter(pharmacy=self.pharmacy)
             if self.pk:
                 duplicate = duplicate.exclude(pk=self.pk)
             if duplicate.exists():
@@ -193,6 +195,10 @@ class DosageRule(GovernedRuleMixin):
             raise ValidationError(errors)
 
     def save(self, *args, **kwargs):
+        if self.pharmacy_id is None and self.medicine_id:
+            self.pharmacy_id = self.medicine.pharmacy_id
+        if self.medicine_id and self.pharmacy_id != self.medicine.pharmacy_id:
+            raise ValidationError({'medicine': 'The medicine belongs to another pharmacy.'})
         self.validate_active_immutability((
             'medicine_id', 'dose_unit', 'min_single_dose', 'max_single_dose', 'max_daily_dose',
             'min_frequency_per_day', 'max_frequency_per_day', 'max_duration_days', 'min_age',
@@ -207,6 +213,7 @@ class DosageRule(GovernedRuleMixin):
 
 
 class DrugInteractionRule(GovernedRuleMixin):
+    pharmacy = models.ForeignKey('accounts.Pharmacy', null=True, blank=True, on_delete=models.PROTECT, related_name='drug_interaction_rules')
     medicine_a = models.ForeignKey(Medicine, on_delete=models.PROTECT, related_name='interaction_rules_as_a')
     medicine_b = models.ForeignKey(Medicine, on_delete=models.PROTECT, related_name='interaction_rules_as_b')
     severity = models.CharField(max_length=20, choices=SeverityChoices.choices)
@@ -222,7 +229,8 @@ class DrugInteractionRule(GovernedRuleMixin):
     class Meta:
         ordering = ['-severity', 'medicine_a__generic_name', 'medicine_b__generic_name']
         constraints = [
-            models.UniqueConstraint(fields=['medicine_a', 'medicine_b', 'version'], name='unique_versioned_interaction_pair'),
+            models.UniqueConstraint(fields=['pharmacy', 'medicine_a', 'medicine_b', 'version'], name='unique_versioned_interaction_pair'),
+            models.UniqueConstraint(fields=['medicine_a', 'medicine_b', 'version'], condition=Q(pharmacy__isnull=True), name='unique_unassigned_interaction_pair'),
             models.CheckConstraint(condition=Q(medicine_a_id__lt=F('medicine_b_id')), name='canonical_interaction_pair_order'),
         ]
 
@@ -234,6 +242,7 @@ class DrugInteractionRule(GovernedRuleMixin):
             if self.medicine_a_id > self.medicine_b_id:
                 self.medicine_a_id, self.medicine_b_id = self.medicine_b_id, self.medicine_a_id
             duplicate = DrugInteractionRule.objects.filter(
+                pharmacy=self.pharmacy,
                 medicine_a_id=self.medicine_a_id,
                 medicine_b_id=self.medicine_b_id,
                 version=self.version,
@@ -244,6 +253,13 @@ class DrugInteractionRule(GovernedRuleMixin):
                 raise ValidationError('A drug interaction rule already exists for these two medicines in this version.')
 
     def save(self, *args, **kwargs):
+        if self.pharmacy_id is None and self.medicine_a_id:
+            self.pharmacy_id = self.medicine_a.pharmacy_id
+        if self.medicine_a_id and self.medicine_b_id and (
+            self.medicine_a.pharmacy_id != self.medicine_b.pharmacy_id
+            or self.pharmacy_id != self.medicine_a.pharmacy_id
+        ):
+            raise ValidationError('Both medicines must belong to the rule pharmacy.')
         if self.medicine_a_id and self.medicine_b_id and self.medicine_a_id > self.medicine_b_id:
             self.medicine_a_id, self.medicine_b_id = self.medicine_b_id, self.medicine_a_id
         self.validate_active_immutability((
@@ -258,7 +274,8 @@ class DrugInteractionRule(GovernedRuleMixin):
 
 
 class Allergen(models.Model):
-    name = models.CharField(max_length=150, unique=True)
+    pharmacy = models.ForeignKey('accounts.Pharmacy', null=True, blank=True, on_delete=models.PROTECT, related_name='allergens')
+    name = models.CharField(max_length=150)
     description = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -266,12 +283,17 @@ class Allergen(models.Model):
 
     class Meta:
         ordering = ['name']
+        constraints = [
+            models.UniqueConstraint(fields=['pharmacy', 'name'], name='unique_pharmacy_allergen_name'),
+            models.UniqueConstraint(fields=['name'], condition=Q(pharmacy__isnull=True), name='unique_unassigned_allergen_name'),
+        ]
 
     def __str__(self):
         return self.name
 
 
 class AllergyRule(GovernedRuleMixin):
+    pharmacy = models.ForeignKey('accounts.Pharmacy', null=True, blank=True, on_delete=models.PROTECT, related_name='allergy_rules')
     medicine = models.ForeignKey(Medicine, on_delete=models.PROTECT, related_name='allergy_rules')
     allergen = models.ForeignKey(Allergen, on_delete=models.PROTECT, related_name='medicine_rules')
     severity = models.CharField(max_length=20, choices=SeverityChoices.choices)
@@ -287,13 +309,20 @@ class AllergyRule(GovernedRuleMixin):
     class Meta:
         ordering = ['-severity', 'allergen__name', 'medicine__generic_name']
         constraints = [
-            models.UniqueConstraint(fields=['medicine', 'allergen', 'version'], name='unique_versioned_medicine_allergen_rule'),
+            models.UniqueConstraint(fields=['pharmacy', 'medicine', 'allergen', 'version'], name='unique_versioned_medicine_allergen_rule'),
+            models.UniqueConstraint(fields=['medicine', 'allergen', 'version'], condition=Q(pharmacy__isnull=True), name='unique_unassigned_medicine_allergen_rule'),
         ]
 
     def clean(self):
         super().clean()
+        if self.medicine_id and self.allergen_id and (
+            self.medicine.pharmacy_id != self.allergen.pharmacy_id
+            or self.pharmacy_id != self.medicine.pharmacy_id
+        ):
+            raise ValidationError('The medicine and allergen must belong to the rule pharmacy.')
         if self.medicine_id and self.allergen_id:
             duplicate = AllergyRule.objects.filter(
+                pharmacy=self.pharmacy,
                 medicine_id=self.medicine_id,
                 allergen_id=self.allergen_id,
                 version=self.version,
@@ -306,6 +335,8 @@ class AllergyRule(GovernedRuleMixin):
                 )
 
     def save(self, *args, **kwargs):
+        if self.pharmacy_id is None and self.medicine_id:
+            self.pharmacy_id = self.medicine.pharmacy_id
         self.validate_active_immutability((
             'medicine_id', 'allergen_id', 'severity', 'description', 'explanation',
             'recommendation', 'source_reference', 'source_title', 'source_version', 'source_date', 'source_url',

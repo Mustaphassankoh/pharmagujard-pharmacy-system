@@ -1,0 +1,13 @@
+{% extends 'public/base_public.html' %}
+{% block title %}How It Works | PharmaGuard{% endblock %}
+{% block content %}
+<section class="public-page-hero"><span class="public-eyebrow">How it works</span><h1>A clear path from setup to governed dispensing</h1><p>PharmaGuard organizes pharmacy work into traceable stages.</p></section>
+<section class="public-section"><ol class="public-process">
+    <li><span>01</span><div><h2>Create the pharmacy workspace</h2><p>Registration creates the pharmacy and its first administrator together.</p></div></li>
+    <li><span>02</span><div><h2>Configure medicines and inventory</h2><p>Add categories, medicines, and dated stock batches with pricing and quantity information.</p></div></li>
+    <li><span>03</span><div><h2>Start a dispensing workflow</h2><p>Choose Direct Sale, External Prescription, or Consultation and add medicines.</p></div></li>
+    <li><span>04</span><div><h2>Run the clinical review</h2><p>Review applicable drug-interaction, allergy, and dosage results alongside advisory AI priority.</p></div></li>
+    <li><span>05</span><div><h2>Confirm and retain evidence</h2><p>Acknowledge warnings where required, confirm dispensing, allocate stock through FEFO, and retain the transaction history.</p></div></li>
+</ol></section>
+<section class="public-cta"><div><h2>Begin with your pharmacy</h2><p>Create the tenant and administrator account securely.</p></div><a class="btn btn-primary" href="{% url 'register_pharmacy' %}">Register Pharmacy</a></section>
+{% endblock %}

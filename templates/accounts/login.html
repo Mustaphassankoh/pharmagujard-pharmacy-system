@@ -30,5 +30,6 @@
         {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
         <button type="submit" class="btn btn-primary btn-block">Sign in</button>
     </form>
+    <p class="registration-login"><a href="{% url 'home' %}">Back to home</a> · New pharmacy? <a href="{% url 'register_pharmacy' %}">Register here</a></p>
 </div>
 {% endblock %}

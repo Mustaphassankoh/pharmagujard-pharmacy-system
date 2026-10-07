@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} | PharmaGuard{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>{{ title }}</h1><p class="page-subtitle">This account will belong only to {{ request.user.pharmacy.name }}.</p></div><a class="btn btn-outline-secondary" href="{% url 'staff_list' %}">Back to Staff</a></div>
+<div class="form-card">
+    {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
+    <form method="post" novalidate>{% csrf_token %}<p class="required-note"><span class="required-indicator">*</span> Required fields</p>
+        {% for field in form %}<div class="form-group"><label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span class="required-indicator">*</span>{% endif %}</label>{{ field }}{% if field.errors %}<div class="field-error">{{ field.errors|striptags }}</div>{% endif %}</div>{% endfor %}
+        <button class="btn btn-primary" type="submit">{{ button_text }}</button>
+    </form>
+</div>
+{% endblock %}

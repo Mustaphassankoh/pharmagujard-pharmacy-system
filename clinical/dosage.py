@@ -113,7 +113,10 @@ def check_dosage(dispensing_transaction, dosage_input=None):
             unresolved.append(detail['reason'])
             item_details.append(detail)
             continue
-        all_rules = list(effective_rules(DosageRule.objects.filter(medicine_id=medicine_id)).select_related('medicine'))
+        all_rules = list(effective_rules(DosageRule.objects.filter(
+            medicine_id=medicine_id,
+            pharmacy_id=dispensing_transaction.pharmacy_id,
+        )).select_related('medicine'))
         if not all_rules:
             detail['reason'] = 'No verified dosage rule is configured for this medicine.'
             unresolved.append(detail['reason'])

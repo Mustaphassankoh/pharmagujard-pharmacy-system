@@ -68,7 +68,7 @@ class ExternalPrescriptionForm(forms.ModelForm):
             'notes': 'Notes',
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, pharmacy=None, **kwargs):
         super().__init__(*args, **kwargs)
         for field in self.fields.values():
             field.widget.attrs.update({'class': 'form-control'})
@@ -104,7 +104,7 @@ class ConsultationForm(forms.ModelForm):
             raise forms.ValidationError("Weight must be positive.")
         return weight
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, pharmacy=None, **kwargs):
         super().__init__(*args, **kwargs)
         # Keep legacy model choices readable on historical records while
         # limiting new consultation entry to the supported options.
@@ -118,7 +118,9 @@ class ConsultationForm(forms.ModelForm):
             (PregnancyStatusChoices.PREGNANT, PregnancyStatusChoices.PREGNANT.label),
             (PregnancyStatusChoices.NOT_PREGNANT, PregnancyStatusChoices.NOT_PREGNANT.label),
         ]
-        self.fields['structured_allergies'].queryset = self.fields['structured_allergies'].queryset.filter(is_active=True)
+        self.fields['structured_allergies'].queryset = self.fields['structured_allergies'].queryset.filter(
+            is_active=True, pharmacy=pharmacy
+        ) if pharmacy is not None else self.fields['structured_allergies'].queryset.filter(is_active=True)
         for name, field in self.fields.items():
             if name != 'structured_allergies':
                 field.widget.attrs.update({'class': 'form-control'})

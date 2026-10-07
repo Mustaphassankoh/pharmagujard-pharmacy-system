@@ -33,7 +33,8 @@
     </div>
 
     <!-- Table -->
-    <table class="table">
+    <div class="table-container inventory-table-container" tabindex="0" role="region" aria-label="Inventory table">
+    <table class="table inventory-table">
         <thead>
             <tr>
                 <th>Medicine</th>
@@ -75,8 +76,8 @@
                         <span class="text-muted">-</span>
                     {% endif %}
                 </td>
-                <td>
-                    <div class="d-flex gap-2">
+                <td class="inventory-actions-cell">
+                    <div class="inventory-actions">
                         <a href="{% url 'inventory:batch_list' %}?medicine={{ medicine.id }}" class="btn btn-sm btn-info" title="View Batches">Batches</a>
                         {% if user.role == 'ADMIN' or user.is_superuser %}
                             <a href="{% url 'inventory:batch_create' %}?medicine={{ medicine.id }}" class="btn btn-sm btn-success" title="Add Batch">+ Batch</a>
@@ -91,6 +92,7 @@
             {% endfor %}
         </tbody>
     </table>
+    </div>
 
     <!-- Pagination -->
     {% if page_obj.has_other_pages %}

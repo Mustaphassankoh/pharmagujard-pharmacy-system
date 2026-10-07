@@ -1,0 +1,20 @@
+{% extends 'public/base_public.html' %}
+{% block title %}Features | PharmaGuard{% endblock %}
+{% block content %}
+<section class="public-page-hero"><span class="public-eyebrow">Features</span><h1>Practical tools across the pharmacy workflow</h1><p>Every capability below is already represented in the PharmaGuard application.</p></section>
+<section class="public-section"><div class="public-card-grid">
+    <article class="public-card"><h3>Medicine Management</h3><p>Maintain categorized medicine records with formulation and stock-threshold details.</p></article>
+    <article class="public-card"><h3>Inventory &amp; Batch Tracking</h3><p>Track quantities, pricing, receipt dates, expiry dates, and stock adjustments by batch.</p></article>
+    <article class="public-card"><h3>FEFO Allocation</h3><p>Allocate eligible stock by first-expiry, first-out during transaction confirmation.</p></article>
+    <article class="public-card"><h3>Direct Sale</h3><p>Build, review, and confirm a straightforward pharmacy sale.</p></article>
+    <article class="public-card"><h3>External Prescription</h3><p>Capture prescription context and structured dosage information before dispensing.</p></article>
+    <article class="public-card"><h3>Consultation</h3><p>Record patient context, symptoms, allergies, medicines, and dosage details.</p></article>
+    <article class="public-card"><h3>Drug Interaction Checking</h3><p>Compare selected medicines against active governed interaction rules.</p></article>
+    <article class="public-card"><h3>Allergy Checking</h3><p>Match structured patient allergies with governed medicine-allergen rules.</p></article>
+    <article class="public-card"><h3>Dosage Checking</h3><p>Evaluate structured dose, frequency, duration, age, and weight information.</p></article>
+    <article class="public-card"><h3>Explainable AI Priority</h3><p>Prioritize pharmacist review with a visible decision path and deterministic safety floor.</p></article>
+    <article class="public-card"><h3>Rule Governance</h3><p>Version, review, approve, activate, retire, and audit clinical knowledge.</p></article>
+    <article class="public-card"><h3>Reporting</h3><p>Inspect transaction and clinical-governance activity through focused reports.</p></article>
+</div></section>
+<section class="public-cta"><div><h2>Ready to create a workspace?</h2><p>Register your pharmacy and first administrator.</p></div><a class="btn btn-primary" href="{% url 'register_pharmacy' %}">Register Pharmacy</a></section>
+{% endblock %}

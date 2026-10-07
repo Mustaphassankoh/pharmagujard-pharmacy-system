@@ -89,6 +89,9 @@ def confirm_transaction(dispensing_transaction, cart, user):
         pk=dispensing_transaction.pk
     )
 
+    if not user.is_superuser and txn.pharmacy_id != user.pharmacy_id:
+        raise ValidationError("This transaction does not belong to your pharmacy.")
+
     if txn.status != TransactionStatusChoices.DRAFT:
         raise ValidationError("Only DRAFT transactions can be confirmed.")
 
@@ -105,7 +108,9 @@ def confirm_transaction(dispensing_transaction, cart, user):
             raise ValidationError(f"Invalid quantity for medicine ID {medicine_id}.")
 
         try:
-            medicine = Medicine.objects.get(pk=medicine_id, is_active=True)
+            medicine = Medicine.objects.get(
+                pk=medicine_id, is_active=True, pharmacy_id=txn.pharmacy_id
+            )
         except Medicine.DoesNotExist:
             raise ValidationError(
                 f"Medicine ID {medicine_id} not found or is no longer active."

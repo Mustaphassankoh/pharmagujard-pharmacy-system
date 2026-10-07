@@ -12,17 +12,19 @@ from .services import create_medicine_batch, adjust_batch_stock
 from django.core.exceptions import ValidationError
 from datetime import date
 from django.utils import timezone
+from accounts.tenancy import scope_queryset
 
 
-def _inventory_medicines():
+def _inventory_medicines(user=None):
     valid_batches = MedicineBatch.objects.filter(
         is_active=True,
         expiry_date__gt=date.today(),
         quantity_remaining__gt=0,
     ).order_by('expiry_date')
-    return Medicine.objects.select_related('category').prefetch_related(
+    queryset = Medicine.objects.select_related('category').prefetch_related(
         Prefetch('batches', queryset=valid_batches, to_attr='_valid_batches_cache')
     )
+    return scope_queryset(queryset, user) if user else queryset
 
 
 @login_required
@@ -33,7 +35,7 @@ def inventory_list(request):
     query = request.GET.get('q', '')
     category_id = request.GET.get('category', '')
     
-    medicines = _inventory_medicines()
+    medicines = _inventory_medicines(request.user)
     
     if query:
         medicines = medicines.filter(
@@ -50,7 +52,7 @@ def inventory_list(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
-    categories = MedicineCategory.objects.all()
+    categories = scope_queryset(MedicineCategory.objects.all(), request.user)
     
     return render(request, 'inventory/inventory_list.html', {
         'page_obj': page_obj,
@@ -72,7 +74,7 @@ def low_stock_list(request):
     # property, we can filter in Python, but that prevents DB-level pagination.
     # Given the requirements, let's filter in python.
     
-    medicines = _inventory_medicines()
+    medicines = _inventory_medicines(request.user)
     
     low_stock_medicines = [m for m in medicines if m.total_available_stock <= m.minimum_stock_level]
     
@@ -94,7 +96,7 @@ def expiry_list(request):
     thirty_days_from_now = date.today() + timezone.timedelta(days=30)
     
     # Get active batches that are expired or expiring within 30 days
-    batches = MedicineBatch.objects.select_related('medicine').filter(
+    batches = scope_queryset(MedicineBatch.objects.select_related('medicine'), request.user, 'medicine__pharmacy').filter(
         is_active=True,
         expiry_date__lte=thirty_days_from_now
     ).order_by('expiry_date')
@@ -117,7 +119,7 @@ def batch_list(request):
     medicine_id = request.GET.get('medicine')
     query = request.GET.get('q', '')
     
-    batches = MedicineBatch.objects.select_related('medicine')
+    batches = scope_queryset(MedicineBatch.objects.select_related('medicine'), request.user, 'medicine__pharmacy')
     
     if medicine_id:
         batches = batches.filter(medicine_id=medicine_id)
@@ -139,7 +141,7 @@ def batch_list(request):
 
 @login_required
 def batch_detail(request, pk):
-    batch = get_object_or_404(MedicineBatch.objects.select_related('medicine'), pk=pk)
+    batch = get_object_or_404(scope_queryset(MedicineBatch.objects.select_related('medicine'), request.user, 'medicine__pharmacy'), pk=pk)
     transactions = batch.transactions.select_related('user').order_by('-created_at')
     
     return render(request, 'inventory/batch_detail.html', {
@@ -152,7 +154,7 @@ def batch_detail(request, pk):
 @admin_required
 def batch_create(request):
     if request.method == 'POST':
-        form = MedicineBatchCreateForm(request.POST)
+        form = MedicineBatchCreateForm(request.POST, pharmacy=request.user.pharmacy)
         if form.is_valid():
             try:
                 batch = create_medicine_batch(form.cleaned_data, request.user)
@@ -165,7 +167,7 @@ def batch_create(request):
         initial = {}
         if 'medicine' in request.GET:
             initial['medicine'] = request.GET.get('medicine')
-        form = MedicineBatchCreateForm(initial=initial)
+        form = MedicineBatchCreateForm(initial=initial, pharmacy=request.user.pharmacy)
         
     return render(request, 'inventory/batch_form.html', {
         'form': form,
@@ -176,7 +178,7 @@ def batch_create(request):
 @login_required
 @admin_required
 def batch_update(request, pk):
-    batch = get_object_or_404(MedicineBatch, pk=pk)
+    batch = get_object_or_404(scope_queryset(MedicineBatch.objects.all(), request.user, 'medicine__pharmacy'), pk=pk)
     
     if request.method == 'POST':
         form = MedicineBatchUpdateForm(request.POST, instance=batch)
@@ -197,7 +199,9 @@ def batch_update(request, pk):
 @login_required
 @admin_required
 def batch_adjust(request, pk):
-    batch = get_object_or_404(MedicineBatch, pk=pk)
+    batch = get_object_or_404(
+        scope_queryset(MedicineBatch.objects.all(), request.user, 'medicine__pharmacy'), pk=pk
+    )
     
     if request.method == 'POST':
         form = StockAdjustmentForm(request.POST)
@@ -232,7 +236,11 @@ def batch_adjust(request, pk):
 @login_required
 @admin_required
 def transaction_list(request):
-    transactions = StockTransaction.objects.select_related('batch__medicine', 'user').order_by('-created_at')
+    transactions = scope_queryset(
+        StockTransaction.objects.select_related('batch__medicine', 'user'),
+        request.user,
+        'batch__medicine__pharmacy',
+    ).order_by('-created_at')
     
     paginator = Paginator(transactions, 20)
     page_number = request.GET.get('page')

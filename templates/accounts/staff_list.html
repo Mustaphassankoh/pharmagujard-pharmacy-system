@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}Staff | PharmaGuard{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div><h1>Pharmacy Staff</h1><p class="page-subtitle">Manage staff accounts for {{ request.user.pharmacy.name }}.</p></div>
+    <a class="btn btn-primary" href="{% url 'staff_create' %}">Add Staff</a>
+</div>
+<div class="table-container">
+    <table class="table">
+        <thead><tr><th>Full Name</th><th>Username</th><th>Email</th><th>Role</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead>
+        <tbody>
+        {% for member in staff %}
+        <tr>
+            <td><strong>{{ member.full_name }}</strong></td>
+            <td>{{ member.username }}</td>
+            <td>{{ member.email|default:'—' }}</td>
+            <td>{{ member.get_role_display }}</td>
+            <td><span class="badge {% if member.is_active %}badge-success{% else %}badge-secondary{% endif %}">{% if member.is_active %}ACTIVE{% else %}INACTIVE{% endif %}</span></td>
+            <td>{{ member.date_joined|date:'M j, Y' }}</td>
+            <td><div class="table-actions"><a class="btn btn-sm btn-outline-primary" href="{% url 'staff_update' member.pk %}">Edit</a><a class="btn btn-sm btn-outline-secondary" href="{% url 'staff_password' member.pk %}">Password</a>{% if member.is_active %}<form method="post" action="{% url 'staff_deactivate' member.pk %}" onsubmit="return confirm('Deactivate this staff account?');">{% csrf_token %}<button class="btn btn-sm btn-outline-danger" type="submit">Deactivate</button></form>{% endif %}</div></td>
+        </tr>
+        {% empty %}<tr><td colspan="7" class="empty-state">No pharmacy staff accounts have been created yet.</td></tr>{% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

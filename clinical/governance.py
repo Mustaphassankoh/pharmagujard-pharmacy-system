@@ -53,10 +53,16 @@ def record_rule_audit(rule, action, user, reason='', before=None):
     )
 
 
-def _locked(rule):
+def _locked(rule, user):
     if rule.__class__.__name__ not in RULE_MODELS:
         raise ValidationError('Unsupported clinical rule type.')
-    return rule.__class__.objects.select_for_update().get(pk=rule.pk)
+    queryset = rule.__class__.objects.select_for_update()
+    if not user.is_superuser:
+        queryset = queryset.filter(pharmacy_id=user.pharmacy_id)
+    try:
+        return queryset.get(pk=rule.pk)
+    except rule.__class__.DoesNotExist as exc:
+        raise PermissionDenied('This clinical rule belongs to another pharmacy.') from exc
 
 
 @transaction.atomic
@@ -64,6 +70,8 @@ def create_rule(rule_model, user, reason='', **fields):
     require_governance_admin(user)
     if rule_model.__name__ not in RULE_MODELS:
         raise ValidationError('Unsupported clinical rule type.')
+    if not user.is_superuser:
+        fields['pharmacy'] = user.pharmacy
     rule = rule_model(created_by=user, change_reason=(reason or '').strip(), **fields)
     rule.save()
     record_rule_audit(rule, RuleAuditAction.CREATED, user, reason)
@@ -73,7 +81,7 @@ def create_rule(rule_model, user, reason='', **fields):
 @transaction.atomic
 def submit_rule_for_review(rule, user, reason=''):
     require_governance_admin(user)
-    rule = _locked(rule)
+    rule = _locked(rule, user)
     if rule.status != RuleLifecycleStatus.DRAFT:
         raise ValidationError('Only a draft rule can be submitted for review.')
     before = rule_snapshot(rule)
@@ -87,7 +95,7 @@ def submit_rule_for_review(rule, user, reason=''):
 @transaction.atomic
 def approve_rule(rule, user, reason=''):
     require_governance_admin(user)
-    rule = _locked(rule)
+    rule = _locked(rule, user)
     if rule.status != RuleLifecycleStatus.UNDER_REVIEW:
         raise ValidationError('Only a rule under review can be approved.')
     if rule.created_by_id and rule.created_by_id == user.pk and not user.is_superuser:
@@ -109,7 +117,7 @@ def approve_rule(rule, user, reason=''):
 @transaction.atomic
 def activate_rule(rule, user, reason=''):
     require_governance_admin(user)
-    rule = _locked(rule)
+    rule = _locked(rule, user)
     if rule.status != RuleLifecycleStatus.APPROVED:
         raise ValidationError('This rule cannot move directly from Draft to Active. It must be reviewed and approved first.')
     if not rule.source_reference.strip():
@@ -122,7 +130,9 @@ def activate_rule(rule, user, reason=''):
     rule.save()
     record_rule_audit(rule, RuleAuditAction.ACTIVATED, user, reason, before)
     if rule.supersedes_id:
-        predecessor = rule.__class__.objects.select_for_update().get(pk=rule.supersedes_id)
+        predecessor = rule.__class__.objects.select_for_update().get(
+            pk=rule.supersedes_id, pharmacy_id=rule.pharmacy_id
+        )
         if predecessor.status == RuleLifecycleStatus.ACTIVE:
             predecessor_before = rule_snapshot(predecessor)
             predecessor.status = RuleLifecycleStatus.RETIRED
@@ -140,7 +150,7 @@ def retire_rule(rule, user, reason):
     require_governance_admin(user)
     if not (reason or '').strip():
         raise ValidationError('A retirement reason is required.')
-    rule = _locked(rule)
+    rule = _locked(rule, user)
     if rule.status != RuleLifecycleStatus.ACTIVE:
         raise ValidationError('Only an active rule can be retired.')
     before = rule_snapshot(rule)
@@ -159,7 +169,7 @@ def create_rule_version(rule, user, reason, changes=None):
     require_governance_admin(user)
     if not (reason or '').strip():
         raise ValidationError('A change reason is required for a new version.')
-    rule = _locked(rule)
+    rule = _locked(rule, user)
     changes = changes or {}
     disallowed = {'id', 'pk', 'version', 'status', 'supersedes', 'created_by', 'approved_by', 'retired_by'}
     if disallowed.intersection(changes):

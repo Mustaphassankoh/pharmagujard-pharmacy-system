@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} | PharmaGuard{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div><h1>{{ title }}</h1><p class="page-subtitle">Clinical knowledge for {{ user.pharmacy.name }}.</p></div>
+    <div class="page-actions"><a class="btn btn-outline-secondary" href="{% url 'clinical:rule_management' %}">Back to Rule Management</a></div>
+</div>
+<div class="form-card">
+    <form method="post" novalidate>
+        {% csrf_token %}
+        {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
+        <div class="form-grid">
+            {% for field in form %}
+            <div class="form-group{% if field.name == 'description' or field.name == 'explanation' or field.name == 'recommendation' or field.name == 'change_reason' %} form-group-wide{% endif %}">
+                <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
+                {{ field }}
+                {% if field.help_text %}<small class="form-help">{{ field.help_text }}</small>{% endif %}
+                {% for error in field.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+        {% if is_rule_form %}<p class="form-help">New rules begin as Draft. Use Rule Management to submit, approve, activate, retire, or create a new version.</p>{% endif %}
+        <div class="form-actions"><button class="btn btn-primary" type="submit">{{ submit_label }}</button><a class="btn btn-outline-secondary" href="{% url 'clinical:rule_management' %}">Cancel</a></div>
+    </form>
+</div>
+{% endblock %}

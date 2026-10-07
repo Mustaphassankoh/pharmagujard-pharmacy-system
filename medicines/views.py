@@ -8,6 +8,7 @@ from django.views.decorators.http import require_POST
 from .models import MedicineCategory, Medicine, DosageFormChoices
 from .forms import MedicineCategoryForm, MedicineForm
 from .permissions import admin_required, is_admin
+from accounts.tenancy import scope_queryset
 
 
 # ==========================================
@@ -17,7 +18,7 @@ from .permissions import admin_required, is_admin
 @admin_required
 def category_list(request):
     """List all medicine categories with associated medicine counts."""
-    categories = MedicineCategory.objects.annotate(medicine_count=Count('medicines')).order_by('name')
+    categories = scope_queryset(MedicineCategory.objects.all(), request.user).annotate(medicine_count=Count('medicines')).order_by('name')
     return render(request, 'medicines/category_list.html', {
         'categories': categories,
         'is_admin': is_admin(request.user),
@@ -28,13 +29,15 @@ def category_list(request):
 def category_create(request):
     """Add a new medicine category."""
     if request.method == 'POST':
-        form = MedicineCategoryForm(request.POST)
+        form = MedicineCategoryForm(request.POST, pharmacy=request.user.pharmacy)
         if form.is_valid():
-            category = form.save()
+            category = form.save(commit=False)
+            category.pharmacy = request.user.pharmacy
+            category.save()
             messages.success(request, f"Category '{category.name}' created successfully.")
             return redirect('medicines:category_list')
     else:
-        form = MedicineCategoryForm()
+        form = MedicineCategoryForm(pharmacy=request.user.pharmacy)
 
     return render(request, 'medicines/category_form.html', {
         'form': form,
@@ -47,15 +50,15 @@ def category_create(request):
 @admin_required
 def category_update(request, pk):
     """Edit an existing medicine category."""
-    category = get_object_or_404(MedicineCategory, pk=pk)
+    category = get_object_or_404(scope_queryset(MedicineCategory.objects.all(), request.user), pk=pk)
     if request.method == 'POST':
-        form = MedicineCategoryForm(request.POST, instance=category)
+        form = MedicineCategoryForm(request.POST, instance=category, pharmacy=request.user.pharmacy)
         if form.is_valid():
             category = form.save()
             messages.success(request, f"Category '{category.name}' updated successfully.")
             return redirect('medicines:category_list')
     else:
-        form = MedicineCategoryForm(instance=category)
+        form = MedicineCategoryForm(instance=category, pharmacy=request.user.pharmacy)
 
     return render(request, 'medicines/category_form.html', {
         'form': form,
@@ -70,7 +73,7 @@ def category_update(request, pk):
 @require_POST
 def category_toggle_status(request, pk):
     """Soft toggle category active status."""
-    category = get_object_or_404(MedicineCategory, pk=pk)
+    category = get_object_or_404(scope_queryset(MedicineCategory.objects.all(), request.user), pk=pk)
     category.is_active = not category.is_active
     category.save()
     status_str = "activated" if category.is_active else "deactivated"
@@ -85,7 +88,7 @@ def category_toggle_status(request, pk):
 @login_required
 def medicine_list(request):
     """List medicines with search, filtering, and pagination."""
-    queryset = Medicine.objects.select_related('category').all()
+    queryset = scope_queryset(Medicine.objects.select_related('category').all(), request.user)
 
     # Search (generic_name or brand_name)
     query = request.GET.get('q', '').strip()
@@ -130,7 +133,7 @@ def medicine_list(request):
         query_params.pop('page')
     querystring = query_params.urlencode()
 
-    categories = MedicineCategory.objects.all().order_by('name')
+    categories = scope_queryset(MedicineCategory.objects.all(), request.user).order_by('name')
 
     return render(request, 'medicines/medicine_list.html', {
         'medicines': medicines,
@@ -149,7 +152,7 @@ def medicine_list(request):
 @login_required
 def medicine_detail(request, pk):
     """Display detailed information about a medicine."""
-    medicine = get_object_or_404(Medicine.objects.select_related('category'), pk=pk)
+    medicine = get_object_or_404(scope_queryset(Medicine.objects.select_related('category'), request.user), pk=pk)
     return render(request, 'medicines/medicine_detail.html', {
         'medicine': medicine,
         'is_admin': is_admin(request.user),
@@ -160,13 +163,15 @@ def medicine_detail(request, pk):
 def medicine_create(request):
     """Add a new medicine to the formulary."""
     if request.method == 'POST':
-        form = MedicineForm(request.POST)
+        form = MedicineForm(request.POST, pharmacy=request.user.pharmacy)
         if form.is_valid():
-            medicine = form.save()
+            medicine = form.save(commit=False)
+            medicine.pharmacy = request.user.pharmacy
+            medicine.save()
             messages.success(request, f"Medicine '{medicine.generic_name}' created successfully.")
             return redirect('medicines:medicine_detail', pk=medicine.pk)
     else:
-        form = MedicineForm()
+        form = MedicineForm(pharmacy=request.user.pharmacy)
 
     return render(request, 'medicines/medicine_form.html', {
         'form': form,
@@ -179,15 +184,15 @@ def medicine_create(request):
 @admin_required
 def medicine_update(request, pk):
     """Edit an existing medicine."""
-    medicine = get_object_or_404(Medicine, pk=pk)
+    medicine = get_object_or_404(scope_queryset(Medicine.objects.all(), request.user), pk=pk)
     if request.method == 'POST':
-        form = MedicineForm(request.POST, instance=medicine)
+        form = MedicineForm(request.POST, instance=medicine, pharmacy=request.user.pharmacy)
         if form.is_valid():
             medicine = form.save()
             messages.success(request, f"Medicine '{medicine.generic_name}' updated successfully.")
             return redirect('medicines:medicine_detail', pk=medicine.pk)
     else:
-        form = MedicineForm(instance=medicine)
+        form = MedicineForm(instance=medicine, pharmacy=request.user.pharmacy)
 
     return render(request, 'medicines/medicine_form.html', {
         'form': form,
@@ -202,7 +207,7 @@ def medicine_update(request, pk):
 @require_POST
 def medicine_toggle_status(request, pk):
     """Soft toggle medicine active status."""
-    medicine = get_object_or_404(Medicine, pk=pk)
+    medicine = get_object_or_404(scope_queryset(Medicine.objects.all(), request.user), pk=pk)
     medicine.is_active = not medicine.is_active
     medicine.save()
     status_str = "activated" if medicine.is_active else "deactivated"

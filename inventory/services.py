@@ -8,6 +8,8 @@ def create_medicine_batch(batch_data, user):
     Creates a new MedicineBatch and a corresponding STOCK_IN transaction.
     """
     batch = MedicineBatch(**batch_data)
+    if not user.is_superuser and batch.medicine.pharmacy_id != user.pharmacy_id:
+        raise ValidationError("The selected medicine belongs to another pharmacy.")
     # Ensure quantity_remaining starts as quantity_received
     batch.quantity_remaining = batch.quantity_received
     batch.full_clean()
@@ -33,6 +35,8 @@ def adjust_batch_stock(batch, user, adjustment_type, quantity, notes=""):
     """
     if quantity <= 0:
         raise ValidationError("Adjustment quantity must be greater than 0.")
+    if not user.is_superuser and batch.medicine.pharmacy_id != user.pharmacy_id:
+        raise ValidationError("This batch belongs to another pharmacy.")
 
     batch = MedicineBatch.objects.select_for_update().get(pk=batch.pk)
     

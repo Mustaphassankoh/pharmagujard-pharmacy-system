@@ -16,7 +16,7 @@ RULE_TYPES = {
 }
 
 
-def _rule_queryset(key):
+def _rule_queryset(key, user=None):
     model = RULE_TYPES[key][0]
     related = ['created_by', 'reviewed_by', 'approved_by', 'retired_by', 'supersedes']
     if key == 'interaction':
@@ -25,7 +25,10 @@ def _rule_queryset(key):
         related += ['medicine', 'allergen']
     else:
         related += ['medicine']
-    return model.objects.select_related(*related)
+    queryset = model.objects.select_related(*related)
+    if user is not None and not user.is_superuser:
+        queryset = queryset.filter(pharmacy_id=user.pharmacy_id)
+    return queryset
 
 
 def rule_summary(rule, key):
@@ -45,10 +48,10 @@ def rule_summary(rule, key):
     }
 
 
-def get_all_rule_rows():
+def get_all_rule_rows(user=None):
     rows = []
     for key in RULE_TYPES:
-        rows.extend(rule_summary(rule, key) for rule in _rule_queryset(key))
+        rows.extend(rule_summary(rule, key) for rule in _rule_queryset(key, user))
     return rows
 
 
@@ -124,16 +127,27 @@ def get_action_required_rules(rows=None, now=None, days=EXPIRY_WINDOW_DAYS):
     }
 
 
-def get_recent_governance_activity(limit=10):
-    return ClinicalRuleAudit.objects.select_related('changed_by').order_by('-changed_at', '-pk')[:limit]
+def get_audit_queryset(user=None):
+    queryset = ClinicalRuleAudit.objects.select_related('changed_by')
+    if user is None or user.is_superuser:
+        return queryset
+    ownership = Q(pk__in=[])
+    for key, (model, _label) in RULE_TYPES.items():
+        owned_ids = model.objects.filter(pharmacy_id=user.pharmacy_id).values('pk')
+        ownership |= Q(rule_type=model.__name__, rule_object_id__in=owned_ids)
+    return queryset.filter(ownership)
 
 
-def get_filtered_rule_rows(params):
+def get_recent_governance_activity(limit=10, user=None):
+    return get_audit_queryset(user).order_by('-changed_at', '-pk')[:limit]
+
+
+def get_filtered_rule_rows(params, user=None):
     selected_type = params.get('rule_type', '')
     keys = [selected_type] if selected_type in RULE_TYPES else list(RULE_TYPES)
     rows = []
     for key in keys:
-        qs = _rule_queryset(key)
+        qs = _rule_queryset(key, user)
         if params.get('status'):
             qs = qs.filter(status=params['status'])
         if params.get('severity'):
@@ -184,7 +198,7 @@ def get_filtered_rule_rows(params):
 
 def get_rule_lineage(rule):
     model = rule.__class__
-    all_rules = list(model.objects.select_related('created_by', 'reviewed_by', 'approved_by', 'retired_by', 'supersedes'))
+    all_rules = list(model.objects.filter(pharmacy_id=rule.pharmacy_id).select_related('created_by', 'reviewed_by', 'approved_by', 'retired_by', 'supersedes'))
     by_id = {item.pk: item for item in all_rules}
     root = rule
     seen = set()

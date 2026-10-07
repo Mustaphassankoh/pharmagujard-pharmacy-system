@@ -1,6 +1,8 @@
 from django.contrib import admin
+from django.db import IntegrityError, transaction
 from django.test import RequestFactory, SimpleTestCase, TestCase
 from django.urls import reverse
+from unittest.mock import patch
 
 from clinical.models import (
     AllergyRule,
@@ -12,9 +14,171 @@ from clinical.models import (
 )
 from dispensing.models import DispensingTransaction
 from inventory.models import MedicineBatch
-from medicines.models import Medicine
+from medicines.models import Medicine, MedicineCategory
 
-from .models import User
+from .models import Pharmacy, User
+from .services import register_pharmacy_with_admin
+
+
+class PublicRegistrationTests(TestCase):
+    def registration_data(self, **overrides):
+        data = {
+            'pharmacy_name': 'New Horizon Pharmacy',
+            'pharmacy_address': '12 Test Street, Freetown',
+            'pharmacy_phone': '+232 76 000 111',
+            'pharmacy_email': 'contact@newhorizon.example',
+            'license_number': 'LIC-TEST-001',
+            'admin_full_name': 'First Administrator',
+            'admin_username': 'first-admin',
+            'admin_email': 'admin@newhorizon.example',
+            'password1': 'S3cure-Pharmacy-Pass!',
+            'password2': 'S3cure-Pharmacy-Pass!',
+        }
+        data.update(overrides)
+        return data
+
+    def test_public_pages_load(self):
+        pages = {
+            'home': 'Intelligent Pharmacy Management',
+            'features': 'Practical tools across the pharmacy workflow',
+            'about': 'Designed to make pharmacy work more structured',
+            'how_it_works': 'A clear path from setup to governed dispensing',
+            'register_pharmacy': 'Create your PharmaGuard workspace',
+        }
+        for url_name, expected in pages.items():
+            with self.subTest(url_name=url_name):
+                response = self.client.get(reverse(url_name))
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, expected)
+
+    def test_valid_registration_creates_pharmacy_admin_and_logs_in(self):
+        response = self.client.post(reverse('register_pharmacy'), self.registration_data())
+
+        pharmacy = Pharmacy.objects.get(name='New Horizon Pharmacy')
+        user = User.objects.get(username='first-admin')
+        self.assertRedirects(response, reverse('dashboard'))
+        self.assertEqual(user.pharmacy, pharmacy)
+        self.assertEqual(user.role, 'ADMIN')
+        self.assertTrue(user.is_staff)
+        self.assertTrue(user.check_password('S3cure-Pharmacy-Pass!'))
+        self.assertEqual(int(self.client.session['_auth_user_id']), user.pk)
+
+    def test_duplicate_username_has_friendly_error(self):
+        User.objects.create_user(username='first-admin', password='Existing-Pass-123!', full_name='Existing')
+        response = self.client.post(reverse('register_pharmacy'), self.registration_data())
+
+        self.assertContains(response, 'This username is already in use.')
+        self.assertFalse(Pharmacy.objects.filter(name='New Horizon Pharmacy').exists())
+
+    def test_duplicate_email_and_pharmacy_name_have_friendly_errors(self):
+        Pharmacy.objects.create(name='New Horizon Pharmacy')
+        User.objects.create_user(
+            username='existing-email', email='admin@newhorizon.example',
+            password='Existing-Pass-123!', full_name='Existing',
+        )
+        response = self.client.post(reverse('register_pharmacy'), self.registration_data())
+
+        self.assertContains(response, 'A pharmacy with this name is already registered.')
+        self.assertContains(response, 'An account with this email already exists.')
+
+    def test_django_password_validation_is_applied(self):
+        response = self.client.post(
+            reverse('register_pharmacy'), self.registration_data(password1='password', password2='password')
+        )
+
+        self.assertContains(response, 'This password is too common.')
+        self.assertFalse(Pharmacy.objects.filter(name='New Horizon Pharmacy').exists())
+
+    def test_registration_service_rolls_back_pharmacy_if_user_creation_fails(self):
+        data = self.registration_data()
+        data.pop('password2')
+        with patch('accounts.services.User.objects.create_user', side_effect=RuntimeError('synthetic failure')):
+            with self.assertRaises(RuntimeError):
+                register_pharmacy_with_admin(data)
+        self.assertFalse(Pharmacy.objects.filter(name='New Horizon Pharmacy').exists())
+
+    def test_authenticated_registration_and_home_redirect_to_dashboard(self):
+        user = User.objects.create_user(username='signed-in', password='Valid-Pass-123!', full_name='Signed In')
+        self.client.force_login(user)
+        for url_name in ('home', 'register_pharmacy'):
+            with self.subTest(url_name=url_name):
+                self.assertRedirects(self.client.get(reverse(url_name)), reverse('dashboard'))
+
+    def test_existing_login_still_authenticates(self):
+        user = User.objects.create_user(username='login-user', password='Valid-Pass-123!', full_name='Login User')
+        response = self.client.post(reverse('login'), {'username': 'login-user', 'password': 'Valid-Pass-123!'})
+        self.assertRedirects(response, reverse('dashboard'))
+        self.assertEqual(int(self.client.session['_auth_user_id']), user.pk)
+
+
+class PharmacyTenantFoundationTests(TestCase):
+    def setUp(self):
+        self.pharmacy_a = Pharmacy.objects.create(name='Tenant Pharmacy A')
+        self.pharmacy_b = Pharmacy.objects.create(name='Tenant Pharmacy B')
+
+    def test_pharmacy_creation_and_user_link(self):
+        user = User.objects.create_user(
+            username='tenant-user', password='pw', full_name='Tenant User',
+            pharmacy=self.pharmacy_a,
+        )
+        self.assertEqual(user.pharmacy, self.pharmacy_a)
+        self.assertTrue(self.pharmacy_a.is_active)
+
+    def test_superuser_can_remain_without_pharmacy(self):
+        user = User.objects.create_superuser(
+            username='platform-admin', password='pw', full_name='Platform Admin'
+        )
+        self.assertIsNone(user.pharmacy)
+
+    def test_category_names_are_unique_per_pharmacy(self):
+        MedicineCategory.objects.create(pharmacy=self.pharmacy_a, name='Analgesics')
+        MedicineCategory.objects.create(pharmacy=self.pharmacy_b, name='Analgesics')
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            MedicineCategory.objects.create(pharmacy=self.pharmacy_a, name='Analgesics')
+
+    def test_medicine_formulations_are_unique_per_pharmacy(self):
+        category_a = MedicineCategory.objects.create(pharmacy=self.pharmacy_a, name='A')
+        category_b = MedicineCategory.objects.create(pharmacy=self.pharmacy_b, name='B')
+        values = dict(generic_name='TenantMed', brand_name='', strength='10mg', dosage_form='TABLET', unit='tablet')
+        Medicine.objects.create(pharmacy=self.pharmacy_a, category=category_a, **values)
+        Medicine.objects.create(pharmacy=self.pharmacy_b, category=category_b, **values)
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            Medicine.objects.create(pharmacy=self.pharmacy_a, category=category_a, **values)
+
+    def test_transaction_inherits_users_pharmacy(self):
+        user = User.objects.create_user(
+            username='tenant-staff', password='pw', full_name='Tenant Staff',
+            pharmacy=self.pharmacy_a,
+        )
+        dispensing = DispensingTransaction.objects.create(user=user)
+        self.assertEqual(dispensing.pharmacy, self.pharmacy_a)
+
+    def test_clinical_knowledge_models_are_pharmacy_scoped(self):
+        from clinical.models import Allergen
+
+        Allergen.objects.create(pharmacy=self.pharmacy_a, name='Synthetic Allergen')
+        Allergen.objects.create(pharmacy=self.pharmacy_b, name='Synthetic Allergen')
+        for model in (Allergen, DrugInteractionRule, AllergyRule, DosageRule):
+            with self.subTest(model=model.__name__):
+                self.assertEqual(model._meta.get_field('pharmacy').related_model, Pharmacy)
+
+    def test_normal_admin_queryset_is_tenant_limited(self):
+        user = User.objects.create_user(
+            username='tenant-admin', password='pw', full_name='Tenant Admin',
+            role='ADMIN', pharmacy=self.pharmacy_a,
+        )
+        category_a = MedicineCategory.objects.create(pharmacy=self.pharmacy_a, name='Visible')
+        MedicineCategory.objects.create(pharmacy=self.pharmacy_b, name='Hidden')
+        request = RequestFactory().get('/admin/medicines/medicinecategory/')
+        request.user = user
+        model_admin = admin.site._registry[MedicineCategory]
+        self.assertEqual(list(model_admin.get_queryset(request)), [category_a])
+
+    def test_demo_pharmacy_data_migration_is_present(self):
+        migration = __import__(
+            'accounts.migrations.0004_backfill_default_pharmacy', fromlist=['DEFAULT_PHARMACY_NAME']
+        )
+        self.assertEqual(migration.DEFAULT_PHARMACY_NAME, 'PharmaGuard Demo Pharmacy')
 
 
 class DeploymentReadinessTests(SimpleTestCase):

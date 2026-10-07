@@ -1,9 +1,11 @@
 from django.contrib import admin
 from .models import MedicineBatch, StockTransaction
 from pharmacy_system.currency import format_currency
+from accounts.admin import PharmacyScopedAdminMixin
 
 @admin.register(MedicineBatch)
-class MedicineBatchAdmin(admin.ModelAdmin):
+class MedicineBatchAdmin(PharmacyScopedAdminMixin, admin.ModelAdmin):
+    pharmacy_lookup = 'medicine__pharmacy'
     list_display = ('batch_number', 'medicine', 'quantity_remaining', 'quantity_received', 'cost_price_display', 'selling_price_display', 'date_received', 'expiry_date', 'is_active', 'status')
     list_filter = ('is_active', 'date_received', 'expiry_date', 'medicine__category')
     search_fields = ('batch_number', 'medicine__generic_name', 'medicine__brand_name')
@@ -29,7 +31,8 @@ class MedicineBatchAdmin(admin.ModelAdmin):
         return self.readonly_fields
 
 @admin.register(StockTransaction)
-class StockTransactionAdmin(admin.ModelAdmin):
+class StockTransactionAdmin(PharmacyScopedAdminMixin, admin.ModelAdmin):
+    pharmacy_lookup = 'batch__medicine__pharmacy'
     list_display = ('batch', 'user', 'transaction_type', 'quantity', 'created_at')
     list_filter = ('transaction_type', 'created_at', 'user')
     search_fields = ('batch__batch_number', 'batch__medicine__generic_name', 'user__username')

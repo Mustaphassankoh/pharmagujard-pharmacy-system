@@ -1,6 +1,26 @@
-# Intelligent Pharmacy Management System
+# PharmaGuard — Academic Multi-Pharmacy Prototype
 
-This is a web-based pharmacy management system designed primarily for independent and community pharmacies. It features medicine management, inventory management, point-of-sale capabilities, and an explainable clinical decision support system.
+PharmaGuard is an academic multi-pharmacy prototype designed primarily for independent and community pharmacies. It combines medicine management, tenant-isolated inventory, dispensing workflows, explainable clinical decision support, clinical-rule governance, and reporting.
+
+## Multi-Pharmacy Architecture
+
+```text
+Public Website
+      ↓
+Pharmacy Registration
+      ↓
+Pharmacy Tenant
+      ↓
+ADMIN
+      ↓
+PHARMACY_STAFF
+```
+
+Registration creates one Pharmacy tenant and its first `ADMIN` atomically. That administrator can maintain the pharmacy profile and create or deactivate `PHARMACY_STAFF` accounts through the normal application UI. Staff, medicines, inventory, transactions, clinical rules, governance records, reports, and exports are isolated by pharmacy. Django superusers retain cross-tenant access through Django Admin for platform maintenance.
+
+The Decision Tree model registry remains platform-wide. Its output prioritizes pharmacist review only and does not replace deterministic clinical checks or pharmacist judgement.
+
+PharmaGuard is developed for academic demonstration and evaluation. It does not include payments, subscriptions, billing, email verification, or production SaaS infrastructure, and its clinical decision-support prototype is not clinically validated.
 
 ## Technology Stack
 - **Backend:** Python, Django
@@ -57,4 +77,4 @@ This is a web-based pharmacy management system designed primarily for independen
    ```bash
    python manage.py runserver
    ```
-   Access the application at `http://127.0.0.1:8000/`. You should be redirected to the login page.
+   Access the public website at `http://127.0.0.1:8000/`. Register a pharmacy or sign in to an existing workspace.

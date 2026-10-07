@@ -83,7 +83,11 @@ def check_drug_interactions(dispensing_transaction, medicine_ids):
         transaction=dispensing_transaction,
         alert_type=AlertTypeChoices.DRUG_INTERACTION,
     ).delete()
-    medicines = {medicine.pk: medicine for medicine in Medicine.objects.filter(pk__in=ids)}
+    medicines = {
+        medicine.pk: medicine for medicine in Medicine.objects.filter(
+            pk__in=ids, pharmacy_id=dispensing_transaction.pharmacy_id
+        )
+    }
     now = timezone.now()
     if len(medicines) != len(ids):
         status = ClinicalCheckStatus.NOT_CHECKED
@@ -100,6 +104,7 @@ def check_drug_interactions(dispensing_transaction, medicine_ids):
         else:
             pair_set = set(pairs)
             rules = effective_rules(DrugInteractionRule.objects.filter(
+                pharmacy_id=dispensing_transaction.pharmacy_id,
                 medicine_a_id__in=ids,
                 medicine_b_id__in=ids,
             )).select_related('medicine_a', 'medicine_b')
@@ -150,7 +155,11 @@ def check_allergies(dispensing_transaction, medicine_ids):
         alert_type=AlertTypeChoices.ALLERGY,
     ).delete()
     now = timezone.now()
-    medicines = {medicine.pk: medicine for medicine in Medicine.objects.filter(pk__in=ids)}
+    medicines = {
+        medicine.pk: medicine for medicine in Medicine.objects.filter(
+            pk__in=ids, pharmacy_id=dispensing_transaction.pharmacy_id
+        )
+    }
     consultation = None
     allergen_ids = []
     if dispensing_transaction.transaction_type == TransactionTypeChoices.CONSULTATION:
@@ -170,6 +179,7 @@ def check_allergies(dispensing_transaction, medicine_ids):
         details = {'execution_failed': False, 'context_unavailable': True, 'reason': 'No structured allergy information was available for automated checking.'}
     else:
         rules = effective_rules(AllergyRule.objects.filter(
+            pharmacy_id=dispensing_transaction.pharmacy_id,
             medicine_id__in=ids,
             allergen_id__in=allergen_ids,
         )).select_related('medicine', 'allergen')

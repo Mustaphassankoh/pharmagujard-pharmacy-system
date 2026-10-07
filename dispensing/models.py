@@ -1,6 +1,7 @@
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
+from django.core.exceptions import ValidationError
 
 from inventory.models import MedicineBatch
 from medicines.models import Medicine
@@ -41,6 +42,10 @@ class DispensingTransaction(models.Model):
         blank=True,
         db_index=True,
         help_text="Auto-generated after initial save. Format: TX-YYYY-NNNNNN."
+    )
+    pharmacy = models.ForeignKey(
+        'accounts.Pharmacy', null=True, blank=True, on_delete=models.PROTECT,
+        related_name='dispensing_transactions',
     )
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -86,6 +91,10 @@ class DispensingTransaction(models.Model):
         This guarantees uniqueness without a count() query.
         Format: TX-{year}-{pk zero-padded to 6 digits}
         """
+        if self.pharmacy_id is None and self.user_id:
+            self.pharmacy_id = self.user.pharmacy_id
+        if self.user_id and self.user.pharmacy_id and self.pharmacy_id != self.user.pharmacy_id:
+            raise ValidationError('The transaction user belongs to another pharmacy.')
         super().save(*args, **kwargs)
         if not self.transaction_number:
             year = self.created_at.year
@@ -147,6 +156,13 @@ class DispensingItem(models.Model):
         verbose_name = "Dispensing Item"
         verbose_name_plural = "Dispensing Items"
         ordering = ['transaction', 'medicine__generic_name']
+
+    def clean(self):
+        super().clean()
+        if self.transaction_id and self.medicine_id and self.transaction.pharmacy_id != self.medicine.pharmacy_id:
+            raise ValidationError({'medicine': 'The medicine belongs to another pharmacy.'})
+        if self.batch_id and self.medicine_id and self.batch.medicine_id != self.medicine_id:
+            raise ValidationError({'batch': 'The selected batch does not belong to this medicine.'})
 
     def __str__(self):
         return f"{self.medicine.generic_name} × {self.quantity} @ {self.unit_price}"

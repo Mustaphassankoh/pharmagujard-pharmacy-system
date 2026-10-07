@@ -33,6 +33,7 @@ from clinical.services import (
     acknowledge_alerts, current_review, invalidate_clinical_review,
     run_clinical_review as execute_clinical_review,
 )
+from accounts.tenancy import scope_queryset
 
 
 # ---------------------------------------------------------------------------
@@ -184,7 +185,7 @@ def sale_cart(request, pk):
     preview_total = Decimal('0.00')
     for med_id_str, line in cart.items():
         try:
-            med = Medicine.objects.get(pk=int(med_id_str))
+            med = scope_queryset(Medicine.objects.all(), request.user).get(pk=int(med_id_str))
             first_batch = get_valid_batches_fefo(med).first()
             price = first_batch.selling_price if first_batch else Decimal('0.00')
             avail = med.total_available_stock
@@ -253,7 +254,7 @@ def add_to_cart(request, pk):
 
     # Validate medicine
     try:
-        medicine = Medicine.objects.get(pk=medicine_id, is_active=True)
+        medicine = scope_queryset(Medicine.objects.all(), request.user).get(pk=medicine_id, is_active=True)
     except Medicine.DoesNotExist:
         messages.error(request, "Selected medicine is not available.")
         if txn.transaction_type == TransactionTypeChoices.CONSULTATION:
@@ -411,7 +412,7 @@ def transaction_list(request):
     status_filter = request.GET.get('status', '')
     type_filter = request.GET.get('type', '')
 
-    transactions = DispensingTransaction.objects.select_related('user').order_by('-created_at')
+    transactions = scope_queryset(DispensingTransaction.objects.select_related('user'), request.user).order_by('-created_at')
 
     if query:
         transactions = transactions.filter(
@@ -449,7 +450,7 @@ def transaction_detail(request, pk):
     Both ADMIN and PHARMACY_STAFF can view.
     """
     txn = get_object_or_404(
-        DispensingTransaction.objects.select_related('user', 'external_prescription', 'clinical_review').prefetch_related(
+        scope_queryset(DispensingTransaction.objects.all(), request.user).select_related('user', 'external_prescription', 'clinical_review').prefetch_related(
             'items__medicine', 'items__batch', 'clinical_alerts__medicine_a',
             'clinical_alerts__medicine_b', 'clinical_alerts__allergen',
             'clinical_alerts__acknowledged_by', 'clinical_check_results',
@@ -487,7 +488,7 @@ def medicine_search_json(request):
     results = []
 
     if len(query) >= 2:
-        medicines = Medicine.objects.filter(
+        medicines = scope_queryset(Medicine.objects.all(), request.user).filter(
             is_active=True,
         ).filter(
             Q(generic_name__icontains=query) |
@@ -543,7 +544,7 @@ def external_prescription_cart(request, pk):
     preview_total = Decimal('0.00')
     for med_id_str, line in cart.items():
         try:
-            med = Medicine.objects.get(pk=int(med_id_str))
+            med = scope_queryset(Medicine.objects.all(), request.user).get(pk=int(med_id_str))
             first_batch = get_valid_batches_fefo(med).first()
             price = first_batch.selling_price if first_batch else Decimal('0.00')
             avail = med.total_available_stock
@@ -616,7 +617,7 @@ def external_prescription_add_to_cart(request, pk):
     quantity = form.cleaned_data['quantity']
 
     try:
-        medicine = Medicine.objects.get(pk=medicine_id, is_active=True)
+        medicine = scope_queryset(Medicine.objects.all(), request.user).get(pk=medicine_id, is_active=True)
     except Medicine.DoesNotExist:
         messages.error(request, "Selected medicine is not available.")
         return redirect('dispensing:external_prescription_cart', pk=txn.pk)
@@ -736,7 +737,7 @@ def consultation_cart(request, pk):
     preview_total = Decimal('0.00')
     for med_id_str, line in cart.items():
         try:
-            med = Medicine.objects.get(pk=int(med_id_str))
+            med = scope_queryset(Medicine.objects.all(), request.user).get(pk=int(med_id_str))
             first_batch = get_valid_batches_fefo(med).first()
             price = first_batch.selling_price if first_batch else Decimal('0.00')
             avail = med.total_available_stock
@@ -768,7 +769,7 @@ def consultation_cart(request, pk):
 
     from .forms import ConsultationForm
     metadata = getattr(txn, 'consultation', None)
-    meta_form = ConsultationForm(instance=metadata)
+    meta_form = ConsultationForm(instance=metadata, pharmacy=request.user.pharmacy)
 
     context = {
         'txn': txn,
@@ -795,7 +796,7 @@ def consultation_save_metadata(request, pk):
     if request.method == 'POST':
         from .forms import ConsultationForm
         metadata = getattr(txn, 'consultation', None)
-        form = ConsultationForm(request.POST, instance=metadata)
+        form = ConsultationForm(request.POST, instance=metadata, pharmacy=request.user.pharmacy)
         if form.is_valid():
             previous_allergen_ids = set(metadata.structured_allergies.values_list('pk', flat=True)) if metadata else set()
             previous_context = (metadata.age, metadata.weight) if metadata else (None, None)

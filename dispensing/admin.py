@@ -3,6 +3,7 @@ from django.utils.html import format_html
 from django.utils.text import slugify
 from .models import DispensingTransaction, DispensingItem, ExternalPrescription, Consultation
 from pharmacy_system.currency import format_currency
+from accounts.admin import PharmacyScopedAdminMixin
 
 
 class ExternalPrescriptionInline(admin.StackedInline):
@@ -48,16 +49,16 @@ class DispensingItemInline(admin.TabularInline):
 
 
 @admin.register(DispensingTransaction)
-class DispensingTransactionAdmin(admin.ModelAdmin):
+class DispensingTransactionAdmin(PharmacyScopedAdminMixin, admin.ModelAdmin):
     list_display = (
-        'transaction_number', 'user', 'transaction_type', 'status_badge',
+        'transaction_number', 'pharmacy', 'user', 'transaction_type', 'status_badge',
         'total_amount_display', 'created_at', 'completed_at',
     )
     list_filter = ('status', 'transaction_type', 'created_at')
     search_fields = ('transaction_number', 'user__username', 'user__full_name')
     ordering = ('-created_at',)
     readonly_fields = (
-        'transaction_number', 'user', 'transaction_type', 'status',
+        'transaction_number', 'pharmacy', 'user', 'transaction_type', 'status',
         'subtotal_display', 'total_amount_display', 'created_at', 'completed_at',
     )
     inlines = [ExternalPrescriptionInline, ConsultationInline, DispensingItemInline]
@@ -93,7 +94,8 @@ class DispensingTransactionAdmin(admin.ModelAdmin):
 
 
 @admin.register(DispensingItem)
-class DispensingItemAdmin(admin.ModelAdmin):
+class DispensingItemAdmin(PharmacyScopedAdminMixin, admin.ModelAdmin):
+    pharmacy_lookup = 'transaction__pharmacy'
     list_display = (
         'transaction', 'medicine', 'batch', 'quantity', 'dose', 'unit_price_display', 'line_total_display', 'created_at',
     )
@@ -125,7 +127,8 @@ class DispensingItemAdmin(admin.ModelAdmin):
 
 
 @admin.register(ExternalPrescription)
-class ExternalPrescriptionAdmin(admin.ModelAdmin):
+class ExternalPrescriptionAdmin(PharmacyScopedAdminMixin, admin.ModelAdmin):
+    pharmacy_lookup = 'transaction__pharmacy'
     list_display = ('transaction', 'prescriber_name', 'facility_name', 'prescription_source', 'prescription_date', 'created_at')
     search_fields = ('transaction__transaction_number', 'prescriber_name', 'facility_name', 'reference_number')
     readonly_fields = ('transaction', 'prescription_source', 'prescriber_name', 'facility_name', 'prescription_date', 'reference_number', 'notes', 'created_at', 'updated_at')
@@ -141,7 +144,8 @@ class ExternalPrescriptionAdmin(admin.ModelAdmin):
 
 
 @admin.register(Consultation)
-class ConsultationAdmin(admin.ModelAdmin):
+class ConsultationAdmin(PharmacyScopedAdminMixin, admin.ModelAdmin):
+    pharmacy_lookup = 'transaction__pharmacy'
     list_display = ('transaction', 'sex', 'age', 'pregnancy_status', 'created_at')
     search_fields = ('transaction__transaction_number', 'symptoms', 'symptom_duration', 'notes')
     readonly_fields = (

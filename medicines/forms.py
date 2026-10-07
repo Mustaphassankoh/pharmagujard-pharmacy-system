@@ -3,6 +3,10 @@ from .models import MedicineCategory, Medicine
 
 
 class MedicineCategoryForm(forms.ModelForm):
+    def __init__(self, *args, pharmacy=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.pharmacy = pharmacy or getattr(self.instance, 'pharmacy', None)
+
     class Meta:
         model = MedicineCategory
         fields = ['name', 'description', 'is_active']
@@ -33,7 +37,7 @@ class MedicineCategoryForm(forms.ModelForm):
             raise forms.ValidationError("Category name cannot be empty.")
         
         # Check uniqueness case-insensitively
-        qs = MedicineCategory.objects.filter(name__iexact=name)
+        qs = MedicineCategory.objects.filter(name__iexact=name, pharmacy=self.pharmacy)
         if self.instance.pk:
             qs = qs.exclude(pk=self.instance.pk)
         if qs.exists():
@@ -104,10 +108,13 @@ class MedicineForm(forms.ModelForm):
             'is_active': 'Active in Formulary',
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, pharmacy=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self.pharmacy = pharmacy or getattr(self.instance, 'pharmacy', None)
         # Order categories by name and show active first
-        self.fields['category'].queryset = MedicineCategory.objects.order_by('-is_active', 'name')
+        self.fields['category'].queryset = MedicineCategory.objects.filter(
+            pharmacy=self.pharmacy
+        ).order_by('-is_active', 'name')
         self.fields['category'].empty_label = "-- Select Category --"
         self.fields['dosage_form'].empty_label = "-- Select Dosage Form --"
         self.fields['unit'].empty_label = "-- Select Unit --"
@@ -142,6 +149,7 @@ class MedicineForm(forms.ModelForm):
 
         if generic_name and strength and dosage_form:
             duplicates = Medicine.objects.filter(
+                pharmacy=self.pharmacy,
                 generic_name__iexact=generic_name,
                 brand_name__iexact=brand_name,
                 strength__iexact=strength,

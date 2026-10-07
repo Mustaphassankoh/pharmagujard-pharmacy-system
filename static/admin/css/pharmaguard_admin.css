@@ -101,6 +101,28 @@ a:hover, a:focus { color: #115E59; }
 #user-tools { color: #A7F3D0; font-size: .78rem; }
 #user-tools a { color: #FFFFFF; border-bottom-color: rgba(255, 255, 255, .35); }
 #user-tools a:hover { color: #CCFBF1; }
+#user-tools form { display: inline; margin: 0; padding: 0; }
+#user-tools form button {
+    display: inline;
+    width: auto;
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    color: #FFFFFF;
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, .35);
+    border-radius: 0;
+    box-shadow: none;
+    font: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+    text-transform: inherit;
+    cursor: pointer;
+}
+#user-tools form button:hover,
+#user-tools form button:focus { color: #CCFBF1; background: transparent; border-color: currentColor; }
 .theme-toggle { color: #FFFFFF; }
 
 /* 4. Dashboard */

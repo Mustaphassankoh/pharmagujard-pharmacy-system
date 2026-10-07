@@ -17,8 +17,10 @@ class MedicineBatchCreateForm(forms.ModelForm):
             'selling_price': 'Selling Price (SLE)',
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, pharmacy=None, **kwargs):
         super().__init__(*args, **kwargs)
+        if pharmacy is not None:
+            self.fields['medicine'].queryset = self.fields['medicine'].queryset.filter(pharmacy=pharmacy)
         for field in self.fields.values():
             field.widget.attrs.update({'class': 'form-control'})
 

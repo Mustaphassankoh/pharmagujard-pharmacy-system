@@ -1,0 +1,57 @@
+{% extends 'public/base_public.html' %}
+{% block title %}PharmaGuard | Intelligent Pharmacy Management{% endblock %}
+{% block content %}
+<section class="public-hero">
+    <div class="public-hero-copy">
+        <span class="public-eyebrow">Pharmacy operations, brought together</span>
+        <h1>Intelligent Pharmacy Management &amp; Clinical Decision Support</h1>
+        <p>A modern platform for pharmacy operations, inventory, dispensing, and explainable clinical review.</p>
+        <div class="public-actions">
+            <a class="btn btn-primary" href="{% url 'register_pharmacy' %}">Register Your Pharmacy</a>
+            <a class="btn btn-outline-primary" href="{% url 'login' %}">Sign In</a>
+        </div>
+    </div>
+    <div class="public-hero-panel" aria-label="PharmaGuard capabilities">
+        <div><span>01</span><strong>Manage stock with batch-level visibility</strong></div>
+        <div><span>02</span><strong>Dispense through structured workflows</strong></div>
+        <div><span>03</span><strong>Review explainable clinical checks</strong></div>
+    </div>
+</section>
+
+<section class="public-section public-intro">
+    <span class="public-eyebrow">About PharmaGuard</span>
+    <h2>One workspace for safer, clearer pharmacy operations</h2>
+    <p>PharmaGuard connects medicine cataloguing, inventory control, dispensing, clinical review, governance, and reporting in one focused system for pharmacy teams.</p>
+</section>
+
+<section class="public-section">
+    <div class="public-section-heading"><div><span class="public-eyebrow">Core features</span><h2>Built around real pharmacy workflows</h2></div><a href="{% url 'features' %}">Explore every feature →</a></div>
+    <div class="public-card-grid">
+        <article class="public-card"><span class="public-card-icon">Rx</span><h3>Medicine &amp; Inventory</h3><p>Manage medicines, categories, batches, stock levels, expiry dates, and FEFO allocation.</p></article>
+        <article class="public-card"><span class="public-card-icon">→</span><h3>Structured Dispensing</h3><p>Support direct sales, external prescriptions, consultations, and traceable transactions.</p></article>
+        <article class="public-card"><span class="public-card-icon">✓</span><h3>Clinical Review</h3><p>Surface interaction, allergy, and dosage checks before medicines are dispensed.</p></article>
+        <article class="public-card"><span class="public-card-icon">AI</span><h3>Explainable Priority</h3><p>Use an interpretable demo model to prioritize pharmacist review without replacing deterministic checks.</p></article>
+        <article class="public-card"><span class="public-card-icon">§</span><h3>Rule Governance</h3><p>Maintain governed clinical knowledge with versioning, approval, lifecycle, and audit history.</p></article>
+        <article class="public-card"><span class="public-card-icon">↗</span><h3>Reporting</h3><p>Review operational activity and clinical governance evidence through focused reports.</p></article>
+    </div>
+</section>
+
+<section class="public-section public-split">
+    <div><span class="public-eyebrow">How it works</span><h2>From stock receipt to reviewed dispensing</h2><p>Configure the medicine catalogue, record batches, select a dispensing workflow, run the clinical review, and confirm the transaction with a clear audit trail.</p><a class="btn btn-outline-primary" href="{% url 'how_it_works' %}">See the workflow</a></div>
+    <ol class="public-steps"><li><strong>Set up the catalogue</strong><span>Add medicines, categories, and inventory batches.</span></li><li><strong>Choose a workflow</strong><span>Start a sale, prescription, or consultation.</span></li><li><strong>Review and confirm</strong><span>Evaluate checks, acknowledge warnings, and dispense.</span></li></ol>
+</section>
+
+<section class="public-section public-highlight">
+    <div><span class="public-eyebrow">Explainable clinical decision support</span><h2>Priority with context, never a black-box safety claim</h2></div>
+    <p>Deterministic drug-interaction, allergy, and dosage checks remain authoritative. The demo decision tree provides review priority and exposes its decision path, feature snapshot, confidence, and safety guard.</p>
+</section>
+
+<section class="public-section public-two-column">
+    <article><h2>Inventory &amp; Dispensing</h2><p>Track batches, stock movements, low-stock states, expiry alerts, and FEFO allocation while supporting the three existing dispensing workflows.</p></article>
+    <article><h2>Governance &amp; Reporting</h2><p>Control clinical-rule lifecycle changes, preserve approval evidence, and inspect operational and governance reports.</p></article>
+</section>
+
+<section class="public-section public-notice"><strong>Academic / Demo Notice</strong><p>PharmaGuard is an academic prototype developed for demonstration and evaluation purposes. Its clinical decision-support components are not clinically validated.</p></section>
+
+<section class="public-cta"><div><span class="public-eyebrow">Get started</span><h2>Create your pharmacy workspace</h2><p>Register a pharmacy and its first administrator in one secure step.</p></div><div class="public-actions"><a class="btn btn-primary" href="{% url 'register_pharmacy' %}">Register Pharmacy</a><a class="btn btn-outline-primary" href="{% url 'login' %}">Login</a></div></section>
+{% endblock %}

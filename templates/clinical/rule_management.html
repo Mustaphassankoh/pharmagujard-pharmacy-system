@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block title %}Rule Management | PharmaGuard{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div><h1>Clinical Rule Management</h1><p class="page-subtitle">Create and govern clinical knowledge for {{ user.pharmacy.name }}.</p></div>
+    <div class="page-actions"><a class="btn btn-primary" href="{% url 'clinical:rule_create' 'interaction' %}">Add Interaction Rule</a><a class="btn btn-outline-primary" href="{% url 'clinical:rule_create' 'allergy' %}">Add Allergy Rule</a><a class="btn btn-outline-primary" href="{% url 'clinical:rule_create' 'dosage' %}">Add Dosage Rule</a><a class="btn btn-outline-secondary" href="{% url 'clinical:allergen_create' %}">Add Allergen</a></div>
+</div>
+{% if not has_rules %}<div class="detail-card detail-card-wide mb-4"><div class="detail-body"><h2>No clinical rules have been configured for this pharmacy yet.</h2><p class="text-muted">Create a draft rule above. Draft rules do not participate in clinical checks.</p></div></div>{% endif %}
+
+{% for section_title, rows in rule_sections %}
+<h2 class="section-title">{{ section_title }}</h2>
+<div class="table-container mb-4"><table class="table"><thead><tr><th>Rule</th><th>Severity</th><th>Version</th><th>Lifecycle</th><th>Effective State</th><th>Review Date</th><th>Actions</th></tr></thead><tbody>
+{% for row in rows %}<tr>
+    <td>{{ row.summary }}</td><td><span class="badge badge-{{ row.object.severity|lower }}">{{ row.object.get_severity_display }}</span></td><td>v{{ row.object.version }}</td><td><span class="badge badge-{{ row.object.status|lower }}">{{ row.object.get_status_display }}</span></td><td>{{ row.effective_state|title }}</td><td>{{ row.object.next_review_date|default:"Not configured" }}</td>
+    <td><div class="table-actions"><a class="btn btn-sm btn-outline-secondary" href="{% url 'clinical:rule_history' row.rule_type row.object.pk %}">History</a>
+    {% if row.object.status == 'DRAFT' %}<form method="post" action="{% url 'clinical:rule_lifecycle_action' row.rule_type row.object.pk 'submit' %}">{% csrf_token %}<input type="hidden" name="reason" value="Submitted through tenant rule management"><button class="btn btn-sm btn-outline-primary" type="submit">Submit for Review</button></form>{% endif %}
+    {% if row.object.status == 'UNDER_REVIEW' %}<form method="post" action="{% url 'clinical:rule_lifecycle_action' row.rule_type row.object.pk 'approve' %}">{% csrf_token %}<input type="hidden" name="reason" value="Approved through tenant rule management"><button class="btn btn-sm btn-outline-success" type="submit">Approve</button></form>{% endif %}
+    {% if row.object.status == 'APPROVED' %}<form method="post" action="{% url 'clinical:rule_lifecycle_action' row.rule_type row.object.pk 'activate' %}">{% csrf_token %}<input type="hidden" name="reason" value="Activated through tenant rule management"><button class="btn btn-sm btn-success" type="submit">Activate</button></form>{% endif %}
+    {% if row.object.status == 'ACTIVE' %}<form method="post" action="{% url 'clinical:rule_lifecycle_action' row.rule_type row.object.pk 'retire' %}" onsubmit="return confirm('Retire this clinical rule?');">{% csrf_token %}<input type="hidden" name="reason" value="Retired through tenant rule management"><button class="btn btn-sm btn-outline-danger" type="submit">Retire</button></form><form method="post" action="{% url 'clinical:rule_lifecycle_action' row.rule_type row.object.pk 'version' %}">{% csrf_token %}<input type="hidden" name="reason" value="New version created through tenant rule management"><button class="btn btn-sm btn-outline-primary" type="submit">New Version</button></form>{% endif %}
+    {% if row.object.status == 'RETIRED' %}<form method="post" action="{% url 'clinical:rule_lifecycle_action' row.rule_type row.object.pk 'version' %}">{% csrf_token %}<input type="hidden" name="reason" value="New version created through tenant rule management"><button class="btn btn-sm btn-outline-primary" type="submit">New Version</button></form>{% endif %}
+    </div></td>
+</tr>{% empty %}<tr><td colspan="7" class="empty-state">No {{ section_title|lower }} configured.</td></tr>{% endfor %}
+</tbody></table></div>
+{% endfor %}
+
+<h2 class="section-title">Allergens</h2>
+<div class="table-container"><table class="table"><thead><tr><th>Name</th><th>Description</th><th>Status</th><th>Action</th></tr></thead><tbody>{% for allergen in allergens %}<tr><td>{{ allergen.name }}</td><td>{{ allergen.description|default:"-" }}</td><td>{% if allergen.is_active %}<span class="badge badge-active">Active</span>{% else %}<span class="badge badge-inactive">Inactive</span>{% endif %}</td><td><a class="btn btn-sm btn-outline-primary" href="{% url 'clinical:allergen_update' allergen.pk %}">Edit</a></td></tr>{% empty %}<tr><td colspan="4" class="empty-state">No allergens configured. <a href="{% url 'clinical:allergen_create' %}">Add the first allergen</a>.</td></tr>{% endfor %}</tbody></table></div>
+{% endblock %}

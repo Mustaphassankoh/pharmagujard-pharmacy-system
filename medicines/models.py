@@ -4,9 +4,12 @@ from django.core.exceptions import ValidationError
 
 
 class MedicineCategory(models.Model):
+    pharmacy = models.ForeignKey(
+        'accounts.Pharmacy', null=True, blank=True, on_delete=models.PROTECT,
+        related_name='medicine_categories',
+    )
     name = models.CharField(
         max_length=150,
-        unique=True,
         help_text="Unique name of the medicine category (e.g., Analgesics, Antibiotics)."
     )
     description = models.TextField(
@@ -24,13 +27,17 @@ class MedicineCategory(models.Model):
         verbose_name = "Medicine Category"
         verbose_name_plural = "Medicine Categories"
         ordering = ['name']
+        constraints = [
+            models.UniqueConstraint(fields=['pharmacy', 'name'], name='unique_pharmacy_category_name'),
+            models.UniqueConstraint(fields=['name'], condition=models.Q(pharmacy__isnull=True), name='unique_unassigned_category_name'),
+        ]
 
     def clean(self):
         super().clean()
         if self.name:
             self.name = self.name.strip()
             # Case-insensitive duplicate check for clean error reporting
-            existing = MedicineCategory.objects.filter(name__iexact=self.name)
+            existing = MedicineCategory.objects.filter(name__iexact=self.name, pharmacy=self.pharmacy)
             if self.pk:
                 existing = existing.exclude(pk=self.pk)
             if existing.exists():
@@ -74,6 +81,10 @@ class UnitChoices(models.TextChoices):
 
 
 class Medicine(models.Model):
+    pharmacy = models.ForeignKey(
+        'accounts.Pharmacy', null=True, blank=True, on_delete=models.PROTECT,
+        related_name='medicines',
+    )
     category = models.ForeignKey(
         MedicineCategory,
         on_delete=models.PROTECT,
@@ -125,9 +136,13 @@ class Medicine(models.Model):
         ordering = ['generic_name', 'brand_name']
         constraints = [
             models.UniqueConstraint(
-                fields=['generic_name', 'brand_name', 'strength', 'dosage_form'],
+                fields=['pharmacy', 'generic_name', 'brand_name', 'strength', 'dosage_form'],
                 name='unique_medicine_formulation'
-            )
+            ),
+            models.UniqueConstraint(
+                fields=['generic_name', 'brand_name', 'strength', 'dosage_form'],
+                condition=models.Q(pharmacy__isnull=True), name='unique_unassigned_medicine_formulation',
+            ),
         ]
 
     def clean(self):
@@ -141,10 +156,13 @@ class Medicine(models.Model):
 
         if self.minimum_stock_level is not None and self.minimum_stock_level < 0:
             raise ValidationError({'minimum_stock_level': "Minimum stock level cannot be negative."})
+        if self.category_id and self.pharmacy_id != self.category.pharmacy_id:
+            raise ValidationError({'category': 'The selected category belongs to another pharmacy.'})
 
         # Case-insensitive formulation duplicate check
         if self.generic_name and self.strength and self.dosage_form:
             duplicates = Medicine.objects.filter(
+                pharmacy=self.pharmacy,
                 generic_name__iexact=self.generic_name,
                 brand_name__iexact=self.brand_name,
                 strength__iexact=self.strength,
@@ -158,6 +176,10 @@ class Medicine(models.Model):
                 )
 
     def save(self, *args, **kwargs):
+        if self.pharmacy_id is None and self.category_id:
+            self.pharmacy_id = self.category.pharmacy_id
+        if self.category_id and self.pharmacy_id != self.category.pharmacy_id:
+            raise ValidationError({'category': 'The selected category belongs to another pharmacy.'})
         if self.generic_name:
             self.generic_name = self.generic_name.strip()
         if self.brand_name:
