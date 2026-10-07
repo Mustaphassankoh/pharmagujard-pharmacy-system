@@ -232,7 +232,7 @@ body:not(.auth-page) .layout > .main-content { width: calc(100% - var(--sidebar-
     box-shadow: var(--shadow-card);
 }
 .card { padding: var(--space-6); }
-.stat-card { position: relative; overflow: hidden; min-height: 138px; text-align: left; }
+.stat-card { position: relative; overflow: hidden; min-height: 138px; background: var(--color-surface); text-align: left; }
 .dashboard-grid .stat-card { padding: 18px var(--space-6); }
 .dashboard-summary-header {
     min-width: 0;
@@ -253,11 +253,6 @@ body:not(.auth-page) .layout > .main-content { width: calc(100% - var(--sidebar-
     line-height: 1.2;
     white-space: nowrap;
 }
-.stat-card::before { position: absolute; inset: 0 auto 0 0; width: 4px; content: ""; background: var(--color-border); }
-.stat-card-primary::before { background: var(--color-primary); }
-.stat-card-warning::before { background: var(--color-warning); }
-.stat-card-success::before { background: var(--color-success); }
-.stat-card-info::before { background: var(--color-info); }
 .stat-card h2, .stat-card h3 { margin: var(--space-2) 0 0; color: var(--color-text-muted); font-size: .95rem; font-weight: 650; }
 .stat-label { color: var(--color-primary); font-size: .7rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .stat { margin: var(--space-2) 0 0; font-size: 2rem; font-weight: 800; letter-spacing: -.035em; }
