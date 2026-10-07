@@ -17,7 +17,7 @@
         <span class="stat-label">Medicine catalogue</span>
         <h2>Total Medicines</h2>
         <p class="stat">{{ total_medicines|default:0 }}</p>
-        <p class="stat-note">Medicine catalogue records</p>
+        <p class="stat-note">Catalogue records</p>
     </article>
     <article class="card stat-card stat-card-warning">
         <span class="stat-label">Inventory attention</span>
@@ -29,7 +29,7 @@
         <span class="stat-label">Completed today</span>
         <h2>Today's Sales</h2>
         <p class="stat stat-currency"><small>SLE</small> {{ today_sales|default:0|floatformat:2 }}</p>
-        <p class="stat-note">Across all completed transactions</p>
+        <p class="stat-note">Completed transactions</p>
     </article>
     <article class="card stat-card stat-card-info">
         <span class="stat-label">Workflow queue</span>
@@ -45,7 +45,6 @@
             <span class="section-kicker">Current workload</span>
             <h2 id="operational-activity-title">Operational Activity</h2>
         </div>
-        <p>{{ transactions_today|default:0 }} completed transaction{{ transactions_today|default:0|pluralize }} today</p>
     </div>
     <div class="card activity-card">
         <div class="activity-metric">
