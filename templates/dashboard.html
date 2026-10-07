@@ -14,24 +14,28 @@
 
 <section class="dashboard-grid" aria-label="Pharmacy summary">
     <article class="card stat-card stat-card-primary">
+        <i data-lucide="pill" class="icon card-icon" aria-hidden="true"></i>
         <span class="stat-label">Medicine catalogue</span>
         <h2>Total Medicines</h2>
         <p class="stat">{{ total_medicines|default:0 }}</p>
         <p class="stat-note">Catalogue records</p>
     </article>
     <article class="card stat-card stat-card-warning">
+        <i data-lucide="triangle-alert" class="icon card-icon" aria-hidden="true"></i>
         <span class="stat-label">Inventory attention</span>
         <h2>Low Stock Alerts</h2>
         <p class="stat warning">{{ low_stock_alerts|default:0 }}</p>
         <p class="stat-note">At or below minimum stock</p>
     </article>
     <article class="card stat-card stat-card-success">
+        <i data-lucide="banknote" class="icon card-icon" aria-hidden="true"></i>
         <span class="stat-label">Completed today</span>
         <h2>Today's Sales</h2>
         <p class="stat stat-currency"><small>SLE</small> {{ today_sales|default:0|floatformat:2 }}</p>
         <p class="stat-note">Completed transactions</p>
     </article>
     <article class="card stat-card stat-card-info">
+        <i data-lucide="file-clock" class="icon card-icon" aria-hidden="true"></i>
         <span class="stat-label">Workflow queue</span>
         <h2>Pending Prescriptions</h2>
         <p class="stat">{{ pending_prescriptions|default:0 }}</p>
@@ -48,22 +52,22 @@
     </div>
     <div class="card activity-card">
         <div class="activity-metric">
-            <span>Direct sales</span>
+            <span><i data-lucide="shopping-cart" class="icon icon-sm" aria-hidden="true"></i>Direct sales</span>
             <strong>{{ direct_sales_today|default:0 }}</strong>
             <small>completed today</small>
         </div>
         <div class="activity-metric">
-            <span>Consultations</span>
+            <span><i data-lucide="stethoscope" class="icon icon-sm" aria-hidden="true"></i>Consultations</span>
             <strong>{{ consultations_today|default:0 }}</strong>
             <small>completed today</small>
         </div>
         <div class="activity-metric">
-            <span>External prescriptions</span>
+            <span><i data-lucide="file-text" class="icon icon-sm" aria-hidden="true"></i>External prescriptions</span>
             <strong>{{ external_prescriptions_today|default:0 }}</strong>
             <small>completed today</small>
         </div>
         <div class="activity-metric activity-metric-highlight">
-            <span>Medicines dispensed</span>
+            <span><i data-lucide="package-check" class="icon icon-sm" aria-hidden="true"></i>Medicines dispensed</span>
             <strong>{{ medicines_dispensed_today|default:0 }}</strong>
             <small>units issued today</small>
         </div>

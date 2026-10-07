@@ -660,3 +660,41 @@ textarea.form-control, .form-group textarea { min-height: 104px; resize: vertica
     .registration-shell { width: min(100% - 24px, 1120px); padding-top: 45px; }
     .registration-card { padding: var(--space-6); }
 }
+/* Shared Lucide icon system. Sidebar SVGs intentionally use their existing rules. */
+.icon {
+    display: inline-block;
+    width: 1.125rem;
+    height: 1.125rem;
+    flex: 0 0 auto;
+    color: currentColor;
+    stroke-width: 2;
+    vertical-align: -0.2em;
+}
+
+.icon-sm { width: 1rem; height: 1rem; }
+.icon-md { width: 1.25rem; height: 1.25rem; }
+.icon-lg { width: 1.75rem; height: 1.75rem; }
+.button-icon { width: 1rem; height: 1rem; }
+.card-icon,
+.feature-icon {
+    width: 1.5rem;
+    height: 1.5rem;
+    color: var(--primary, #0F766E);
+}
+.status-icon { width: 1rem; height: 1rem; }
+.section-icon { width: 1.25rem; height: 1.25rem; color: var(--primary, #0F766E); }
+.section-title-with-icon,
+.heading-with-icon,
+.empty-state-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.btn .icon,
+.btn .button-icon,
+.public-nav a .icon {
+    margin-right: 0.25rem;
+}
+.public-card-icon .icon { width: 1.5rem; height: 1.5rem; }
+.stat-card > .card-icon { margin-bottom: 0.5rem; }
+.activity-metric > span:first-child { display: flex; align-items: center; gap: 0.4rem; }

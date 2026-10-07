@@ -7,6 +7,8 @@
     <meta name="description" content="PharmaGuard — intelligent pharmacy management and explainable clinical decision support.">
     <title>{% block title %}PharmaGuard{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'css/style.css' %}?v=pharmaguard-milestone-b">
+    <script src="https://unpkg.com/lucide@1.52.0/dist/umd/lucide.min.js" defer></script>
+    <script src="{% static 'js/lucide-init.js' %}?v=1" defer></script>
 </head>
 <body class="public-page">
     <header class="public-header">
@@ -20,8 +22,8 @@
                 <a href="{% url 'features' %}">Features</a>
                 <a href="{% url 'about' %}">About</a>
                 <a href="{% url 'how_it_works' %}">How It Works</a>
-                <a href="{% url 'login' %}">Login</a>
-                <a class="btn btn-primary public-register-link" href="{% url 'register_pharmacy' %}">Register Pharmacy</a>
+                <a href="{% url 'login' %}"><i data-lucide="log-in" class="icon icon-sm" aria-hidden="true"></i> Login</a>
+                <a class="btn btn-primary public-register-link" href="{% url 'register_pharmacy' %}"><i data-lucide="building-plus" class="icon icon-sm" aria-hidden="true"></i> Register Pharmacy</a>
             </nav>
         </div>
     </header>
