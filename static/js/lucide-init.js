@@ -51,6 +51,7 @@
             }
         });
         content.querySelectorAll(".public-card h3").forEach((heading) => {
+            if (heading.closest(".public-card").querySelector(".public-card-icon [data-lucide]")) return;
             prependIcon(heading, iconFor(heading.textContent), "feature-icon");
             if (heading.querySelector(":scope > [data-lucide]")) heading.classList.add("heading-with-icon");
         });

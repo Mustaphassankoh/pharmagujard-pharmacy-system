@@ -14,29 +14,37 @@
 
 <section class="dashboard-grid" aria-label="Pharmacy summary">
     <article class="card stat-card stat-card-primary">
-        <i data-lucide="pill" class="icon card-icon" aria-hidden="true"></i>
-        <span class="stat-label">Medicine catalogue</span>
+        <div class="dashboard-summary-header">
+            <i data-lucide="pill" class="icon dashboard-summary-icon" aria-hidden="true"></i>
+            <span class="stat-label dashboard-summary-eyebrow">Medicine catalogue</span>
+        </div>
         <h2>Total Medicines</h2>
         <p class="stat">{{ total_medicines|default:0 }}</p>
         <p class="stat-note">Catalogue records</p>
     </article>
     <article class="card stat-card stat-card-warning">
-        <i data-lucide="triangle-alert" class="icon card-icon" aria-hidden="true"></i>
-        <span class="stat-label">Inventory attention</span>
+        <div class="dashboard-summary-header">
+            <i data-lucide="triangle-alert" class="icon dashboard-summary-icon" aria-hidden="true"></i>
+            <span class="stat-label dashboard-summary-eyebrow">Inventory attention</span>
+        </div>
         <h2>Low Stock Alerts</h2>
         <p class="stat warning">{{ low_stock_alerts|default:0 }}</p>
         <p class="stat-note">At or below minimum stock</p>
     </article>
     <article class="card stat-card stat-card-success">
-        <i data-lucide="banknote" class="icon card-icon" aria-hidden="true"></i>
-        <span class="stat-label">Completed today</span>
+        <div class="dashboard-summary-header">
+            <i data-lucide="banknote" class="icon dashboard-summary-icon" aria-hidden="true"></i>
+            <span class="stat-label dashboard-summary-eyebrow">Completed today</span>
+        </div>
         <h2>Today's Sales</h2>
         <p class="stat stat-currency"><small>SLE</small> {{ today_sales|default:0|floatformat:2 }}</p>
         <p class="stat-note">Completed transactions</p>
     </article>
     <article class="card stat-card stat-card-info">
-        <i data-lucide="file-clock" class="icon card-icon" aria-hidden="true"></i>
-        <span class="stat-label">Workflow queue</span>
+        <div class="dashboard-summary-header">
+            <i data-lucide="file-clock" class="icon dashboard-summary-icon" aria-hidden="true"></i>
+            <span class="stat-label dashboard-summary-eyebrow">Workflow queue</span>
+        </div>
         <h2>Pending Prescriptions</h2>
         <p class="stat">{{ pending_prescriptions|default:0 }}</p>
         <p class="stat-note">External prescriptions in draft</p>
