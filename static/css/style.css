@@ -208,6 +208,10 @@ button, a { -webkit-tap-highlight-color: transparent; }
 
 /* 7. Page headers and cards */
 .dashboard-header, .page-header { margin-bottom: var(--space-6); }
+.dashboard-header { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-4); }
+.dashboard-header h1 { margin: var(--space-1) 0 var(--space-2); }
+.page-eyebrow, .section-kicker { color: var(--color-primary); font-size: .68rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.dashboard-date { padding: 7px 11px; color: var(--color-text-muted); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 999px; font-size: .78rem; font-weight: 650; white-space: nowrap; }
 .page-header { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: var(--space-3); }
 .page-header h1 { margin-bottom: 0; }
 .page-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
@@ -222,10 +226,41 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .stat-card { position: relative; overflow: hidden; min-height: 150px; text-align: left; }
 .stat-card::before { position: absolute; inset: 0 auto 0 0; width: 4px; content: ""; background: var(--color-border); }
 .stat-card-primary::before { background: var(--color-primary); }
-.stat-card h3 { margin-top: var(--space-2); color: var(--color-text-muted); font-weight: 600; }
+.stat-card-warning::before { background: var(--color-warning); }
+.stat-card-success::before { background: var(--color-success); }
+.stat-card-info::before { background: var(--color-info); }
+.stat-card h2, .stat-card h3 { margin: var(--space-2) 0 0; color: var(--color-text-muted); font-size: .95rem; font-weight: 650; }
 .stat-label { color: var(--color-primary); font-size: .7rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .stat { margin: var(--space-2) 0 0; font-size: 2rem; font-weight: 800; letter-spacing: -.035em; }
 .stat.warning { color: var(--color-danger); }
+.stat-currency { white-space: nowrap; }
+.stat-currency small { color: var(--color-text-muted); font-size: .75rem; font-weight: 800; letter-spacing: .05em; }
+.stat-note { margin: var(--space-2) 0 0; color: var(--color-text-muted); font-size: .78rem; }
+.dashboard-section { margin-top: var(--space-8); }
+.section-heading { margin-bottom: var(--space-3); display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-4); }
+.section-heading h2 { margin: var(--space-1) 0 0; }
+.section-heading > p { margin: 0; color: var(--color-text-muted); font-size: .82rem; }
+.activity-card { padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); overflow: hidden; }
+.activity-metric { min-width: 0; padding: var(--space-6); border-right: 1px solid var(--color-border); }
+.activity-metric:last-child { border-right: 0; }
+.activity-metric span, .activity-metric small { display: block; color: var(--color-text-muted); }
+.activity-metric span { font-size: .78rem; font-weight: 700; }
+.activity-metric strong { display: block; margin: var(--space-2) 0 2px; font-size: 1.65rem; line-height: 1.15; }
+.activity-metric small { font-size: .72rem; }
+.activity-metric-highlight { background: var(--color-primary-soft); }
+.activity-metric-highlight strong { color: var(--color-primary-dark); }
+.dashboard-chart-card { padding: var(--space-6) var(--space-6) var(--space-4); }
+.dashboard-chart { height: 230px; display: grid; grid-template-columns: repeat(7, minmax(42px, 1fr)); align-items: end; gap: clamp(8px, 2vw, 24px); }
+.chart-column { height: 100%; min-width: 0; display: grid; grid-template-rows: 24px minmax(0, 1fr) 38px; align-items: end; text-align: center; }
+.chart-value { color: var(--color-text-muted); font-size: .75rem; font-weight: 750; }
+.chart-track { height: 100%; min-height: 100px; display: flex; align-items: flex-end; justify-content: center; border-bottom: 1px solid var(--color-border); }
+.chart-bar { width: min(42px, 70%); min-height: 5px; display: block; background: linear-gradient(180deg, #14B8A6, var(--color-primary)); border-radius: 6px 6px 2px 2px; }
+.chart-bar-empty { min-height: 3px; background: var(--color-border); }
+.chart-column time { padding-top: var(--space-2); display: flex; flex-direction: column; line-height: 1.2; }
+.chart-column time strong { font-size: .76rem; }
+.chart-column time small { margin-top: 3px; font-size: .67rem; }
+.chart-caption { margin: var(--space-4) 0 0; display: flex; align-items: center; justify-content: center; gap: var(--space-2); color: var(--color-text-muted); font-size: .75rem; }
+.chart-caption span { width: 9px; height: 9px; background: var(--color-primary); border-radius: 50%; }
 .detail-card { max-width: 900px; overflow: hidden; }
 .detail-card-wide { max-width: 100%; }
 .detail-header { padding: var(--space-4) var(--space-6); display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); background: var(--color-bg); border-bottom: 1px solid var(--color-border); }
@@ -473,6 +508,9 @@ textarea.form-control, .form-group textarea { min-height: 104px; resize: vertica
     .clinical-check-grid { grid-template-columns: 1fr; }
     .ai-panel-header { align-items: flex-start; flex-wrap: wrap; }
     .dispensing-layout { grid-template-columns: minmax(0, 1fr) 330px; }
+    .activity-card { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .activity-metric:nth-child(2) { border-right: 0; }
+    .activity-metric:nth-child(-n+2) { border-bottom: 1px solid var(--color-border); }
 }
 
 @media (max-width: 760px) {
@@ -489,6 +527,11 @@ textarea.form-control, .form-group textarea { min-height: 104px; resize: vertica
     .user-info { width: 100%; justify-content: flex-end; }
     .content, .notifications { padding-inline: var(--space-4); }
     .content { padding-top: var(--space-4); }
+    .dashboard-header, .section-heading { align-items: flex-start; flex-direction: column; }
+    .dashboard-date { white-space: normal; }
+    .dashboard-chart-card { padding-inline: var(--space-3); }
+    .dashboard-chart { gap: 5px; }
+    .chart-bar { width: min(30px, 75%); }
     .form-grid { grid-template-columns: 1fr; }
     .form-row-2 { grid-template-columns: 1fr; }
     .dispensing-layout { grid-template-columns: 1fr; }

@@ -4,30 +4,97 @@
 
 {% block content %}
 <div class="dashboard-header">
-    <h1>Dashboard</h1>
-    <p class="page-subtitle">A clear view of current pharmacy operations.</p>
+    <div>
+        <span class="page-eyebrow">Today at a glance</span>
+        <h1>Dashboard</h1>
+        <p class="page-subtitle">A clear view of current pharmacy operations.</p>
+    </div>
+    <time class="dashboard-date" datetime="{% now 'Y-m-d' %}">{% now "l, j F Y" %}</time>
 </div>
 
-<div class="dashboard-grid">
-    <div class="card stat-card stat-card-primary">
+<section class="dashboard-grid" aria-label="Pharmacy summary">
+    <article class="card stat-card stat-card-primary">
         <span class="stat-label">Medicine catalogue</span>
-        <h3>Total Medicines</h3>
+        <h2>Total Medicines</h2>
         <p class="stat">{{ total_medicines|default:0 }}</p>
-    </div>
-    <div class="card stat-card">
+        <p class="stat-note">Medicine catalogue records</p>
+    </article>
+    <article class="card stat-card stat-card-warning">
         <span class="stat-label">Inventory attention</span>
-        <h3>Low Stock Alerts</h3>
-        <p class="stat warning">0</p>
-    </div>
-    <div class="card stat-card">
-        <span class="stat-label">Operational summary</span>
-        <h3>Today's Sales</h3>
-        <p class="stat">0</p>
-    </div>
-    <div class="card stat-card">
+        <h2>Low Stock Alerts</h2>
+        <p class="stat warning">{{ low_stock_alerts|default:0 }}</p>
+        <p class="stat-note">At or below minimum stock</p>
+    </article>
+    <article class="card stat-card stat-card-success">
+        <span class="stat-label">Completed today</span>
+        <h2>Today's Sales</h2>
+        <p class="stat stat-currency"><small>SLE</small> {{ today_sales|default:0|floatformat:2 }}</p>
+        <p class="stat-note">Across all completed transactions</p>
+    </article>
+    <article class="card stat-card stat-card-info">
         <span class="stat-label">Workflow queue</span>
-        <h3>Pending Prescriptions</h3>
-        <p class="stat">0</p>
+        <h2>Pending Prescriptions</h2>
+        <p class="stat">{{ pending_prescriptions|default:0 }}</p>
+        <p class="stat-note">External prescriptions in draft</p>
+    </article>
+</section>
+
+<section class="dashboard-section" aria-labelledby="operational-activity-title">
+    <div class="section-heading">
+        <div>
+            <span class="section-kicker">Current workload</span>
+            <h2 id="operational-activity-title">Operational Activity</h2>
+        </div>
+        <p>{{ transactions_today|default:0 }} completed transaction{{ transactions_today|default:0|pluralize }} today</p>
     </div>
-</div>
+    <div class="card activity-card">
+        <div class="activity-metric">
+            <span>Direct sales</span>
+            <strong>{{ direct_sales_today|default:0 }}</strong>
+            <small>completed today</small>
+        </div>
+        <div class="activity-metric">
+            <span>Consultations</span>
+            <strong>{{ consultations_today|default:0 }}</strong>
+            <small>completed today</small>
+        </div>
+        <div class="activity-metric">
+            <span>External prescriptions</span>
+            <strong>{{ external_prescriptions_today|default:0 }}</strong>
+            <small>completed today</small>
+        </div>
+        <div class="activity-metric activity-metric-highlight">
+            <span>Medicines dispensed</span>
+            <strong>{{ medicines_dispensed_today|default:0 }}</strong>
+            <small>units issued today</small>
+        </div>
+    </div>
+</section>
+
+<section class="dashboard-section" aria-labelledby="weekly-transactions-title">
+    <div class="section-heading">
+        <div>
+            <span class="section-kicker">Seven-day trend</span>
+            <h2 id="weekly-transactions-title">Transactions Over the Past 7 Days</h2>
+        </div>
+        <p>{{ chart_total|default:0 }} completed transaction{{ chart_total|default:0|pluralize }}</p>
+    </div>
+    <div class="card dashboard-chart-card">
+        <div class="dashboard-chart" role="img" aria-label="Completed transactions for each of the past seven days">
+            {% for day in chart_days %}
+            <div class="chart-column">
+                <span class="chart-value">{{ day.count }}</span>
+                <div class="chart-track">
+                    <span class="chart-bar{% if day.count == 0 %} chart-bar-empty{% endif %}" style="height: {{ day.height }}%"></span>
+                </div>
+                <time datetime="{{ day.date|date:'Y-m-d' }}">
+                    <strong>{{ day.date|date:"D" }}</strong>
+                    <small>{{ day.date|date:"j M" }}</small>
+                </time>
+            </div>
+            {% endfor %}
+        </div>
+        <p class="chart-caption"><span aria-hidden="true"></span>Completed dispensing transactions</p>
+    </div>
+</section>
 {% endblock %}

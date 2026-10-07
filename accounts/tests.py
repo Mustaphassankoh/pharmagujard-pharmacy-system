@@ -2,7 +2,10 @@ from django.contrib import admin
 from django.db import IntegrityError, transaction
 from django.test import RequestFactory, SimpleTestCase, TestCase
 from django.urls import reverse
+from django.utils import timezone
 from unittest.mock import patch
+from datetime import timedelta
+from decimal import Decimal
 
 from clinical.models import (
     AllergyRule,
@@ -12,12 +15,84 @@ from clinical.models import (
     DosageRule,
     DrugInteractionRule,
 )
-from dispensing.models import DispensingTransaction
+from dispensing.models import (
+    DispensingItem, DispensingTransaction, TransactionStatusChoices,
+    TransactionTypeChoices,
+)
 from inventory.models import MedicineBatch
 from medicines.models import Medicine, MedicineCategory
 
 from .models import Pharmacy, User
 from .services import register_pharmacy_with_admin
+
+
+class DashboardTests(TestCase):
+    def setUp(self):
+        self.pharmacy = Pharmacy.objects.create(name='Dashboard Pharmacy')
+        other_pharmacy = Pharmacy.objects.create(name='Other Dashboard Pharmacy')
+        self.user = User.objects.create_user(
+            username='dashboard-user', password='pw', role='ADMIN', pharmacy=self.pharmacy,
+        )
+        other_user = User.objects.create_user(
+            username='other-dashboard-user', password='pw', role='ADMIN', pharmacy=other_pharmacy,
+        )
+        category = MedicineCategory.objects.create(pharmacy=self.pharmacy, name='Dashboard Category')
+        other_category = MedicineCategory.objects.create(pharmacy=other_pharmacy, name='Other Dashboard Category')
+        self.medicine = Medicine.objects.create(
+            pharmacy=self.pharmacy, category=category, generic_name='Dashboard Medicine',
+            strength='10mg', dosage_form='TABLET', unit='tablet', minimum_stock_level=10,
+        )
+        Medicine.objects.create(
+            pharmacy=other_pharmacy, category=other_category, generic_name='Other Medicine',
+            strength='20mg', dosage_form='TABLET', unit='tablet', minimum_stock_level=10,
+        )
+        self.batch = MedicineBatch.objects.create(
+            medicine=self.medicine, batch_number='DASH-001', quantity_received=8,
+            quantity_remaining=8, cost_price='1.00', selling_price='2.00',
+            expiry_date=timezone.localdate() + timedelta(days=90),
+        )
+        completed = DispensingTransaction.objects.create(
+            user=self.user, transaction_type=TransactionTypeChoices.DIRECT_SALE,
+            status=TransactionStatusChoices.COMPLETED, total_amount=Decimal('20.00'),
+            completed_at=timezone.now(),
+        )
+        DispensingItem.objects.create(
+            transaction=completed, medicine=self.medicine, batch=self.batch,
+            quantity=4, unit_price=Decimal('2.00'), line_total=Decimal('8.00'),
+        )
+        DispensingTransaction.objects.create(
+            user=self.user, transaction_type=TransactionTypeChoices.EXTERNAL_PRESCRIPTION,
+            status=TransactionStatusChoices.DRAFT,
+        )
+        DispensingTransaction.objects.create(
+            user=other_user, transaction_type=TransactionTypeChoices.DIRECT_SALE,
+            status=TransactionStatusChoices.COMPLETED, total_amount=Decimal('999.00'),
+            completed_at=timezone.now(),
+        )
+        self.client.force_login(self.user)
+
+    def test_dashboard_uses_real_tenant_scoped_operational_data(self):
+        response = self.client.get(reverse('dashboard'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['total_medicines'], 1)
+        self.assertEqual(response.context['low_stock_alerts'], 1)
+        self.assertEqual(response.context['today_sales'], Decimal('20.00'))
+        self.assertEqual(response.context['pending_prescriptions'], 1)
+        self.assertEqual(response.context['direct_sales_today'], 1)
+        self.assertEqual(response.context['medicines_dispensed_today'], 4)
+        self.assertEqual(response.context['chart_total'], 1)
+        self.assertEqual(len(response.context['chart_days']), 7)
+
+    def test_dashboard_renders_requested_sections(self):
+        response = self.client.get(reverse('dashboard'))
+
+        self.assertContains(response, 'Total Medicines')
+        self.assertContains(response, 'Low Stock Alerts')
+        self.assertContains(response, "Today's Sales")
+        self.assertContains(response, 'Pending Prescriptions')
+        self.assertContains(response, 'Operational Activity')
+        self.assertContains(response, 'Transactions Over the Past 7 Days')
 
 
 class PublicRegistrationTests(TestCase):

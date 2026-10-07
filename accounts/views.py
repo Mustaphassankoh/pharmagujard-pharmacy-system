@@ -1,9 +1,15 @@
 from django.contrib import messages
 from django.contrib.auth import login
 from django.db import IntegrityError
+from django.db.models import Count, DecimalField, F, IntegerField, Q, Sum, Value
+from django.db.models.functions import Coalesce, TruncDate
 from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth.decorators import login_required
+from django.utils import timezone
 from django.views.decorators.http import require_POST
+
+from datetime import timedelta
+from decimal import Decimal
 
 from medicines.permissions import admin_required
 from .forms import (
@@ -16,9 +22,87 @@ from .services import register_pharmacy_with_admin
 @login_required
 def dashboard_view(request):
     from medicines.models import Medicine
+    from dispensing.models import (
+        DispensingItem, DispensingTransaction, TransactionStatusChoices, TransactionTypeChoices,
+    )
     from .tenancy import scope_queryset
-    total_medicines = scope_queryset(Medicine.objects.all(), request.user).count()
-    return render(request, 'dashboard.html', {'total_medicines': total_medicines})
+
+    today = timezone.localdate()
+    start_date = today - timedelta(days=6)
+    medicines = scope_queryset(Medicine.objects.all(), request.user)
+    transactions = scope_queryset(DispensingTransaction.objects.all(), request.user)
+    completed_today = transactions.filter(
+        status=TransactionStatusChoices.COMPLETED,
+        completed_at__date=today,
+    )
+
+    stock_totals = medicines.annotate(
+        available_stock=Coalesce(
+            Sum(
+                'batches__quantity_remaining',
+                filter=Q(
+                    batches__is_active=True,
+                    batches__expiry_date__gt=today,
+                    batches__quantity_remaining__gt=0,
+                ),
+            ),
+            Value(0),
+            output_field=IntegerField(),
+        )
+    )
+    low_stock_alerts = stock_totals.filter(
+        available_stock__lte=F('minimum_stock_level')
+    ).count()
+
+    today_summary = completed_today.aggregate(
+        sales=Coalesce(
+            Sum('total_amount'), Value(Decimal('0.00')),
+            output_field=DecimalField(max_digits=12, decimal_places=2),
+        ),
+    )
+    medicines_dispensed_today = DispensingItem.objects.filter(
+        transaction__in=completed_today,
+    ).aggregate(
+        total=Coalesce(Sum('quantity'), Value(0), output_field=IntegerField()),
+    )['total']
+    activity_counts = {
+        row['transaction_type']: row['count']
+        for row in completed_today.order_by().values('transaction_type').annotate(count=Count('id'))
+    }
+
+    daily_rows = {
+        row['day']: row['count']
+        for row in transactions.filter(
+            status=TransactionStatusChoices.COMPLETED,
+            completed_at__date__range=(start_date, today),
+        ).order_by().annotate(day=TruncDate('completed_at')).values('day').annotate(count=Count('id'))
+    }
+    chart_days = [
+        {'date': start_date + timedelta(days=offset),
+         'count': daily_rows.get(start_date + timedelta(days=offset), 0)}
+        for offset in range(7)
+    ]
+    chart_max = max((day['count'] for day in chart_days), default=0)
+    for day in chart_days:
+        day['height'] = round((day['count'] / chart_max) * 100) if chart_max else 0
+
+    context = {
+        'total_medicines': medicines.count(),
+        'low_stock_alerts': low_stock_alerts,
+        'today_sales': today_summary['sales'],
+        'pending_prescriptions': transactions.filter(
+            transaction_type=TransactionTypeChoices.EXTERNAL_PRESCRIPTION,
+            status=TransactionStatusChoices.DRAFT,
+        ).count(),
+        'direct_sales_today': activity_counts.get(TransactionTypeChoices.DIRECT_SALE, 0),
+        'consultations_today': activity_counts.get(TransactionTypeChoices.CONSULTATION, 0),
+        'external_prescriptions_today': activity_counts.get(TransactionTypeChoices.EXTERNAL_PRESCRIPTION, 0),
+        'medicines_dispensed_today': medicines_dispensed_today,
+        'transactions_today': completed_today.count(),
+        'chart_days': chart_days,
+        'chart_total': sum(day['count'] for day in chart_days),
+    }
+    return render(request, 'dashboard.html', context)
 
 def home_view(request):
     if request.user.is_authenticated:
